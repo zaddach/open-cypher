@@ -1,40 +1,26 @@
 # open-cypher
 
-_created by Austin Poor_
+Parse [openCypher](https://opencypher.org/) and [ISO/IEC 39075:2024 (GQL)](https://www.iso.org/standard/76120.html) queries using Rust.
 
-Parse [openCypher](https://opencypher.org/) queries using Rust.
-
-`open-cypher` uses the [pest](https://pest.rs/) library to parse cypher queries using the pestfile, `src/cypher.pest`, based on the openCypher EBNF file ([link](https://opencypher.org/resources/) or [file](assets/cypher.ebnf)).
+This crate uses the [pest](https://pest.rs/) library to parse queries using the grammars. For Cypher, the grammar `src/cypher.pest` is based on he openCypher EBNF file ([link](https://opencypher.org/resources/) or [file](assets/cypher.ebnf)). For GQL, the grammar `src/ISO_IEC_39075_2024_GQL.pest` is derived from the EBNF file ([link](https://github.com/zmajeed/ebnfparser/blob/main/docs/gqlgrammar.quotedliterals.txt) or [file](assets/gqlgrammar.quotedliterals.txt)).
 
 
 ## Project Status
 
-This library is still in a very early stage. The repo includes a pest grammar file for defining the cyper language, based on the ebnf file from the openCypher site.
+The library is still at a pre-alpha stage. The generated Cypher parser is somewhat tested with queries harvested from the [TCK](https://github.com/opencypher/openCypher/tree/main/tck). The GQL parser is not tested.
 
-My goal is to finish the pest definition and possibly generate a cleaner AST based on what pest parses.
+I've just started working on a unifying AST between the two, expect what's there to change quite a bit.
 
-For reference, the following other projects use pest: https://github.com/pest-parser/pest#projects-using-pest
-
-
-## Project Structure
-
-- `src/`
-  - `cypher.pest`: The [pest](https://pest.rs/) grammar file for generating a rust parser and types, based on the [ebnf file](./assets/cypher.ebnf) from the [openCypher site](https://opencypher.org/).
-  - `main.rs`: Currently the main directory for quick tests (will be removed)
-  - `parser.rs`: Contains functions for parsing and viewing parsed cypher queries
-  - `ast.rs`: Will contain code for _potentially_ exposing a cleaner cypher AST, than is created by pest
-- `assets/`
-  - `cypher.ebnf`: Open cypher grammar definition from the openCypher site
+The long-term goal for this project is to be a full-fledged parser for Cypher as well as GQL that can be combined with a graph database implementation.
 
 ## Contributing
 
 Contributions of any size are more than welcome! Please feel free to submit issues or PRs.
 
-I'm also open to any suggestions regarding overall project direction.
+## Licensing
+This crate is licensed under the Rust-typical dual license of MIT or Apache2, at your choice.
 
-
-## To Do
-
-- [ ] Add tests
-- [ ] Add examples
-- [ ] Add documentation
+The following files have particular licenses:
+- [assets/gqlgrammar.quotedliterals.txt]: MIT only license
+- [assets/cypher.ebnf]: Apache2 only license
+- [src/cypher.pest]: MIT only license

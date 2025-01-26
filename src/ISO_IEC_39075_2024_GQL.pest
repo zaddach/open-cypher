@@ -1,0 +1,3406 @@
+// Initially automatically converted from https://github.com/zmajeed/ebnfparser/blob/main/docs/gqlgrammar.quotedliterals.txt
+
+GqlProgram = {
+    SOI ~
+    (
+        ( ProgramActivity ~ SessionCloseCommand? )
+        | SessionCloseCommand
+    ) ~ EOI
+}
+
+ProgramActivity = {
+    SessionActivity | TransactionActivity
+}
+
+SessionActivity = {
+    SessionResetCommand+
+    | SessionSetCommand+ ~ SessionResetCommand*
+}
+
+TransactionActivity = {
+    StartTransactionCommand ~ ( ProcedureSpecification ~ ( EndTransactionCommand )? )?
+    | ProcedureSpecification ~ EndTransactionCommand?
+    | EndTransactionCommand
+}
+
+EndTransactionCommand = {
+    RollbackCommand | CommitCommand
+}
+
+SessionSetCommand = {
+    SESSION ~ SET ~ (SessionSetSchemaClause | SessionSetGraphClause | SessionSetTimeZoneClause | SessionSetParameterClause)
+}
+
+SessionSetSchemaClause = {
+    SCHEMA ~ SchemaReference
+}
+
+SessionSetGraphClause = {
+    PROPERTY? ~ GRAPH ~ GraphExpression
+}
+
+SessionSetTimeZoneClause = {
+    TIME ~ ZONE ~ SetTimeZoneValue
+}
+
+SetTimeZoneValue = {
+    TimeZoneString
+}
+
+SessionSetParameterClause = {
+    SessionSetGraphParameterClause | SessionSetBindingTableParameterClause | SessionSetValueParameterClause
+}
+
+SessionSetGraphParameterClause = {
+    PROPERTY? ~ GRAPH ~ SessionSetParameterName ~ OptTypedGraphInitializer
+}
+
+SessionSetBindingTableParameterClause = {
+    BINDING? ~ TABLE ~ SessionSetParameterName ~ OptTypedBindingTableInitializer
+}
+
+SessionSetValueParameterClause = {
+    VALUE ~ SessionSetParameterName ~ OptTypedValueInitializer
+}
+
+SessionSetParameterName = {
+    ( IF ~ NOT ~ EXISTS )? ~ SessionParameterSpecification
+}
+
+SessionResetCommand = {
+    SESSION ~ RESET ~ SessionResetArguments?
+}
+
+SessionResetArguments = {
+    ALL? ~ ( PARAMETERS | CHARACTERISTICS )
+    | SCHEMA
+    | PROPERTY? ~ GRAPH
+    | TIME ~ ZONE
+    | PARAMETER? ~ SessionParameterSpecification
+}
+
+SessionCloseCommand = {
+    SESSION ~ CLOSE
+}
+
+SessionParameterSpecification = {
+    GeneralParameterReference
+}
+
+StartTransactionCommand = {
+    START ~ TRANSACTION ~ TransactionCharacteristics?
+}
+
+TransactionCharacteristics = {
+    TransactionMode ~ ( Comma ~ TransactionMode )*
+}
+
+TransactionMode = {
+    TransactionAccessMode /* | ImplementationDefinedAccessMode */
+}
+
+TransactionAccessMode = {
+    READ ~ ONLY
+    | READ ~ WRITE
+}
+
+/*
+ImplementationDefinedAccessMode = {
+    // See the Syntax Rules.
+}
+*/
+
+RollbackCommand = {
+    ROLLBACK
+}
+
+CommitCommand = {
+    COMMIT
+}
+
+NestedProcedureSpecification = {
+    LeftBrace ~ ProcedureSpecification ~ RightBrace
+}
+
+ProcedureSpecification = {
+    CatalogModifyingProcedureSpecification | DataModifyingProcedureSpecification | QuerySpecification
+}
+
+CatalogModifyingProcedureSpecification = {
+    ProcedureBody
+}
+
+NestedDataModifyingProcedureSpecification = {
+    LeftBrace ~ DataModifyingProcedureSpecification ~ RightBrace
+}
+
+DataModifyingProcedureSpecification = {
+    ProcedureBody
+}
+
+NestedQuerySpecification = {
+    LeftBrace ~ QuerySpecification ~ RightBrace
+}
+
+QuerySpecification = {
+    ProcedureBody
+}
+
+ProcedureBody = {
+    AtSchemaClause? ~ BindingVariableDefinitionBlock? ~ StatementBlock
+}
+
+BindingVariableDefinitionBlock = {
+    BindingVariableDefinition+
+}
+
+BindingVariableDefinition = {
+    GraphVariableDefinition | BindingTableVariableDefinition | ValueVariableDefinition
+}
+
+StatementBlock = {
+    Statement ~ NextStatement*
+}
+Statement = {
+    CompositeQueryStatement
+    | LinearDataModifyingStatement
+    | LinearCatalogModifyingStatement
+}
+
+NextStatement = {
+    NEXT ~ YieldClause? ~ Statement
+}
+
+GraphVariableDefinition = {
+    PROPERTY? ~ GRAPH ~ BindingVariable ~ OptTypedGraphInitializer
+}
+
+OptTypedGraphInitializer = {
+    (Typed? ~ GraphReferenceValueType)? ~ GraphInitializer
+}
+
+GraphInitializer = {
+    EqualsOperator ~ GraphExpression
+}
+
+BindingTableVariableDefinition = {
+    BINDING? ~ TABLE ~ BindingVariable ~ OptTypedBindingTableInitializer
+}
+
+OptTypedBindingTableInitializer = {
+    (Typed? ~ BindingTableReferenceValueType)? ~ BindingTableInitializer
+}
+
+BindingTableInitializer = {
+    EqualsOperator ~ BindingTableExpression
+}
+
+ValueVariableDefinition = {
+    VALUE ~ BindingVariable ~ OptTypedValueInitializer
+}
+
+OptTypedValueInitializer = {
+    (Typed? ~ ValueType)? ~ ValueInitializer
+}
+
+ValueInitializer = {
+    EqualsOperator ~ ValueExpression
+}
+
+GraphExpression = {
+    ObjectExpressionPrimary
+    | GraphReference
+    | ObjectNameOrBindingVariable
+    | CurrentGraph
+}
+
+CurrentGraph = {
+    CURRENT_PROPERTY_GRAPH | CURRENT_GRAPH
+}
+
+BindingTableExpression = {
+    NestedBindingTableQuerySpecification
+    | ObjectExpressionPrimary
+    | BindingTableReference
+    | ObjectNameOrBindingVariable
+}
+
+NestedBindingTableQuerySpecification = {
+    NestedQuerySpecification
+}
+
+ObjectExpressionPrimary = {
+    VARIABLE ~ ValueExpressionPrimary
+    | ParenthesizedValueExpression
+    | NonParenthesizedValueExpressionPrimarySpecialCase
+}
+
+LinearCatalogModifyingStatement = {
+    SimpleCatalogModifyingStatement+
+}
+
+SimpleCatalogModifyingStatement = {
+    PrimitiveCatalogModifyingStatement | CallCatalogModifyingProcedureStatement
+}
+
+PrimitiveCatalogModifyingStatement = {
+    CreateSchemaStatement
+    | DropSchemaStatement
+    | CreateGraphStatement
+    | DropGraphStatement
+    | CreateGraphTypeStatement
+    | DropGraphTypeStatement
+}
+
+CreateSchemaStatement = {
+    CREATE ~ SCHEMA ~ (IF ~ NOT ~ EXISTS)? ~ CatalogSchemaParentAndName
+}
+
+DropSchemaStatement = {
+    DROP_ ~ SCHEMA ~ (IF ~ EXISTS)? ~ CatalogSchemaParentAndName
+}
+
+CreateGraphStatement = {
+    CREATE
+        ~ ( PROPERTY? ~ GRAPH ~ (IF ~ NOT ~ EXISTS)? | OR ~ REPLACE ~ PROPERTY? ~ GRAPH )
+        ~ CatalogGraphParentAndName
+        ~ OpenGraphType | OfGraphType
+        ~ GraphSource?
+}
+
+OpenGraphType = {
+    Typed? ~ ANY_ ~ (PROPERTY? ~ GRAPH)?
+}
+
+OfGraphType = {
+    GraphTypeLikeGraph
+    | Typed? ~ GraphTypeReference
+    | Typed? ~ (PROPERTY? ~ GRAPH)? ~ NestedGraphTypeSpecification
+}
+
+GraphTypeLikeGraph = {
+    LIKE ~ GraphExpression
+}
+
+GraphSource = {
+    AS ~ COPY ~ OF ~ GraphExpression
+}
+
+DropGraphStatement = {
+    DROP_ ~ PROPERTY? ~ GRAPH ~ (IF ~ EXISTS)? ~ CatalogGraphParentAndName
+}
+
+CreateGraphTypeStatement = {
+    CREATE
+        ~ (
+            PROPERTY? ~ GRAPH ~ TYPE ~ (IF ~ NOT ~ EXISTS)?
+            | OR ~ REPLACE ~ PROPERTY? ~ GRAPH ~ TYPE
+        ) ~ CatalogGraphTypeParentAndName ~ GraphTypeSource
+}
+
+GraphTypeSource = {
+    AS? ~ CopyOfGraphType
+    | GraphTypeLikeGraph
+    | AS? ~ NestedGraphTypeSpecification
+}
+
+CopyOfGraphType = {
+    COPY ~ OF ~ GraphTypeReference
+    /* | ExternalObjectReference */
+}
+DropGraphTypeStatement = {
+    DROP_ ~ PROPERTY? ~ GRAPH ~ TYPE ~ (IF ~ EXISTS)? ~ CatalogGraphTypeParentAndName
+}
+
+CallCatalogModifyingProcedureStatement = {
+    CallProcedureStatement
+}
+
+LinearDataModifyingStatement = {
+    FocusedLinearDataModifyingStatement
+    | AmbientLinearDataModifyingStatement
+}
+
+FocusedLinearDataModifyingStatement = {
+    FocusedLinearDataModifyingStatementBody | FocusedNestedDataModifyingProcedureSpecification
+}
+
+FocusedLinearDataModifyingStatementBody = {
+    UseGraphClause ~ SimpleLinearDataAccessingStatement ~ PrimitiveResultStatement?
+}
+
+FocusedNestedDataModifyingProcedureSpecification = {
+    UseGraphClause ~ NestedDataModifyingProcedureSpecification
+}
+
+AmbientLinearDataModifyingStatement = {
+    AmbientLinearDataModifyingStatementBody | NestedDataModifyingProcedureSpecification
+}
+
+AmbientLinearDataModifyingStatementBody = {
+    SimpleLinearDataAccessingStatement ~ PrimitiveResultStatement?
+}
+
+SimpleLinearDataAccessingStatement = {
+    SimpleDataAccessingStatement+
+}
+
+SimpleDataAccessingStatement = {
+    SimpleQueryStatement | SimpleDataModifyingStatement
+}
+
+SimpleDataModifyingStatement = {
+    PrimitiveDataModifyingStatement | CallDataModifyingProcedureStatement
+}
+
+PrimitiveDataModifyingStatement = {
+    InsertStatement | SetStatement | RemoveStatement | DeleteStatement
+}
+
+InsertStatement = {
+    INSERT ~ InsertGraphPattern
+}
+
+SetStatement = {
+    SET ~ SetItemList
+}
+
+SetItemList = {
+    SetItem ~ (Comma ~ SetItem)*
+}
+
+SetItem = {
+    SetPropertyItem | SetAllPropertiesItem | SetLabelItem
+}
+
+SetPropertyItem = {
+    BindingVariableReference ~ Period ~ PropertyName ~ EqualsOperator ~ ValueExpression
+}
+
+SetAllPropertiesItem = {
+    BindingVariableReference ~ EqualsOperator ~ LeftBrace ~ PropertyKeyValuePairList? ~ RightBrace
+}
+
+SetLabelItem = {
+    BindingVariableReference ~ IsOrColon ~ LabelName
+}
+
+RemoveStatement = {
+    REMOVE ~ RemoveItemList
+}
+
+RemoveItemList = {
+    RemoveItem ~ ( Comma ~ RemoveItem )*
+}
+
+RemoveItem = {
+    RemovePropertyItem | RemoveLabelItem
+}
+
+RemovePropertyItem = {
+    BindingVariableReference ~ Period ~ PropertyName
+}
+
+RemoveLabelItem = {
+    BindingVariableReference ~ IsOrColon ~ LabelName
+}
+
+DeleteStatement = {
+    (DETACH | NODETACH)? ~ DELETE ~ DeleteItemList
+}
+DeleteItemList = {
+    DeleteItem ~ (Comma ~ DeleteItem)*
+}
+
+DeleteItem = { ValueExpression }
+
+CallDataModifyingProcedureStatement = { CallProcedureStatement }
+
+CompositeQueryStatement = { CompositeQueryExpression }
+
+CompositeQueryExpression = {
+    CompositeQueryPrimary ~ ( QueryConjunction ~ CompositeQueryPrimary )*
+}
+
+QueryConjunction = { SetOperator | OTHERWISE }
+
+SetOperator = {
+    UNION ~ SetQuantifier?
+    | EXCEPT ~ SetQuantifier?
+    | INTERSECT ~ SetQuantifier?
+}
+
+CompositeQueryPrimary = { LinearQueryStatement }
+
+LinearQueryStatement = { FocusedLinearQueryStatement | AmbientLinearQueryStatement }
+
+FocusedLinearQueryStatement = {
+    FocusedLinearQueryStatementPart* ~ FocusedLinearQueryAndPrimitiveResultStatementPart
+    | FocusedPrimitiveResultStatement
+    | FocusedNestedQuerySpecification
+    | SelectStatement
+}
+
+FocusedLinearQueryStatementPart = { UseGraphClause ~ SimpleLinearQueryStatement }
+
+FocusedLinearQueryAndPrimitiveResultStatementPart = {
+    UseGraphClause ~ SimpleLinearQueryStatement ~ PrimitiveResultStatement
+}
+
+FocusedPrimitiveResultStatement = { UseGraphClause ~ PrimitiveResultStatement }
+
+FocusedNestedQuerySpecification = { UseGraphClause ~ NestedQuerySpecification }
+
+AmbientLinearQueryStatement = {
+    SimpleLinearQueryStatement? ~ PrimitiveResultStatement
+    | NestedQuerySpecification
+}
+
+SimpleLinearQueryStatement = {
+    SimpleQueryStatement+
+}
+
+SimpleQueryStatement = { PrimitiveQueryStatement | CallQueryStatement }
+
+PrimitiveQueryStatement = {
+    MatchStatement
+    | LetStatement
+    | ForStatement
+    | FilterStatement
+    | OrderByAndPageStatement
+   
+}
+
+MatchStatement = { SimpleMatchStatement | OptionalMatchStatement }
+
+SimpleMatchStatement = { MATCH ~ GraphPatternBindingTable }
+
+OptionalMatchStatement = { OPTIONAL ~ OptionalOperand }
+
+OptionalOperand = {
+    SimpleMatchStatement
+    | LeftBrace ~ MatchStatementBlock ~ RightBrace
+    | LeftParen ~ MatchStatementBlock ~ RightParen
+   
+}
+
+MatchStatementBlock = { MatchStatement+ }
+
+CallQueryStatement = { CallProcedureStatement }
+
+FilterStatement = {
+    FILTER ~ ( WhereClause | SearchCondition )
+}
+
+LetStatement = { LET ~ LetVariableDefinitionList }
+
+LetVariableDefinitionList = {
+    LetVariableDefinition ~ ( Comma ~ LetVariableDefinition )*
+}
+
+LetVariableDefinition = {
+    ValueVariableDefinition
+    | BindingVariable ~ EqualsOperator ~ ValueExpression
+}
+
+ForStatement = {
+    FOR ~ ForItem ~ ForOrdinalityOrOffset?
+}
+
+ForItem = { ForItemAlias ~ ForItemSource }
+
+ForItemAlias = { BindingVariable ~ IN }
+
+ForItemSource = { ListValueExpression | BindingTableReferenceValueExpression }
+
+ForOrdinalityOrOffset = {
+    WITH ~ (ORDINALITY | OFFSET) ~ BindingVariable
+}
+
+OrderByAndPageStatement = {
+    OrderByClause ~ OffsetClause? ~ LimitClause?
+    | OffsetClause ~ LimitClause?
+    | LimitClause
+}
+
+PrimitiveResultStatement = {
+    ReturnStatement ~ OrderByAndPageStatement?
+    | FINISH
+}
+
+ReturnStatement = { RETURN ~ ReturnStatementBody }
+
+ReturnStatementBody = {
+    SetQuantifier? ~ ( Asterisk | ReturnItemList ) ~ GroupByClause?
+    | NO ~ BINDINGS
+}
+
+ReturnItemList = {
+    ReturnItem ~ (Comma ~ ReturnItem)*
+}
+
+ReturnItem = {
+    AggregatingValueExpression ~ ReturnItemAlias?
+}
+
+ReturnItemAlias = { AS ~ Identifier }
+
+SelectStatement = {
+    SELECT
+        ~ SetQuantifier?
+        ~ (Asterisk | SelectItemList)
+        ~ (
+            SelectStatementBody
+            ~ WhereClause?
+            ~ GroupByClause?
+            ~ HavingClause?
+            ~ OrderByClause?
+            ~ OffsetClause?
+            ~ LimitClause?
+        )?
+}
+
+SelectItemList = {
+    SelectItem ~ (Comma ~ SelectItem)*
+}
+
+SelectItem = {
+    AggregatingValueExpression ~ SelectItemAlias?
+}
+
+SelectItemAlias = { AS ~ Identifier }
+
+HavingClause = { HAVING ~ SearchCondition }
+
+SelectStatementBody = {
+    FROM ~ ( SelectGraphMatchList | SelectQuerySpecification )
+}
+
+SelectGraphMatchList = {
+    SelectGraphMatch ~ ( Comma ~ SelectGraphMatch )*
+}
+
+SelectGraphMatch = { GraphExpression ~ MatchStatement }
+
+SelectQuerySpecification = {
+    NestedQuerySpecification
+    | ( GraphExpression ~ NestedQuerySpecification )
+}
+
+CallProcedureStatement = {
+    OPTIONAL? ~ CALL ~ ProcedureCall
+}
+
+ProcedureCall = { InlineProcedureCall | NamedProcedureCall }
+
+InlineProcedureCall = {
+    VariableScopeClause? ~ NestedProcedureSpecification
+}
+
+VariableScopeClause = {
+    LeftParen ~ BindingVariableReferenceList? ~ RightParen
+}
+
+BindingVariableReferenceList = {
+    BindingVariableReference ~ (Comma ~ BindingVariableReference)*
+}
+
+NamedProcedureCall = {
+    ProcedureReference ~ LeftParen ~ ProcedureArgumentList? ~ RightParen ~ YieldClause?
+}
+
+ProcedureArgumentList = {
+    ProcedureArgument ~ ( Comma ~ ProcedureArgument )*
+}
+
+ProcedureArgument = { ValueExpression }
+
+AtSchemaClause = { AT ~ SchemaReference }
+
+UseGraphClause = { USE ~ GraphExpression }
+
+GraphPatternBindingTable = {
+    GraphPattern ~ GraphPatternYieldClause?
+}
+
+GraphPatternYieldClause = { YIELD ~ GraphPatternYieldItemList }
+
+GraphPatternYieldItemList = {
+    GraphPatternYieldItem ~ ( Comma ~ GraphPatternYieldItem )* 
+    | NO ~ BINDINGS
+}
+
+GraphPatternYieldItem = { ElementVariableReference | PathVariableReference }
+
+GraphPattern = {
+    MatchMode? ~ PathPatternList ~ KeepClause? ~ GraphPatternWhereClause?
+}
+
+MatchMode = { RepeatableElementsMatchMode | DifferentEdgesMatchMode }
+
+RepeatableElementsMatchMode = { REPEATABLE ~ ElementBindingsOrElements }
+
+DifferentEdgesMatchMode = { DIFFERENT ~ EdgeBindingsOrEdges }
+
+ElementBindingsOrElements = {
+    ELEMENT ~ BINDINGS?
+    | ELEMENTS
+}
+
+EdgeBindingsOrEdges = {
+    EdgeSynonym ~ BINDINGS?
+    | EdgesSynonym
+}
+
+PathPatternList = {
+    PathPattern ~ ( Comma ~ PathPattern )*
+}
+
+PathPattern = {
+    PathVariableDeclaration? ~ PathPatternPrefix? ~ PathPatternExpression
+}
+
+PathVariableDeclaration = { PathVariable ~ EqualsOperator }
+
+KeepClause = { KEEP ~ PathPatternPrefix }
+
+GraphPatternWhereClause = { WHERE ~ SearchCondition }
+
+InsertGraphPattern = { InsertPathPatternList }
+
+InsertPathPatternList = {
+    InsertPathPattern ~ ( Comma ~ InsertPathPattern )*
+}
+
+InsertPathPattern = {
+    InsertNodePattern ~ ( InsertEdgePattern ~ InsertNodePattern )*
+}
+
+InsertNodePattern = {
+    LeftParen ~ InsertElementPatternFiller? ~ RightParen
+}
+
+InsertEdgePattern = {
+    InsertEdgePointingLeft
+    | InsertEdgePointingRight
+    | InsertEdgeUndirected
+}
+
+InsertEdgePointingLeft = {
+    LeftArrowBracket ~ InsertElementPatternFiller? ~ RightBracketMinus
+}
+
+InsertEdgePointingRight = {
+    MinusLeftBracket ~ InsertElementPatternFiller? ~ BracketRightArrow
+}
+
+InsertEdgeUndirected = {
+    TildeLeftBracket ~ InsertElementPatternFiller? ~ RightBracketTilde
+}
+
+InsertElementPatternFiller = {
+    ElementVariableDeclaration ~ LabelAndPropertySetSpecification? | ElementVariableDeclaration? ~ LabelAndPropertySetSpecification
+}
+
+LabelAndPropertySetSpecification = {
+    IsOrColon ~ LabelSetSpecification ~ ElementPropertySpecification?
+    | ( IsOrColon ~ LabelSetSpecification )? ~ ElementPropertySpecification
+}
+
+PathPatternPrefix = { PathModePrefix | PathSearchPrefix }
+
+PathModePrefix = {
+    PathMode ~ PathOrPaths?
+}
+
+PathMode = {
+    WALK
+    | TRAIL
+    | SIMPLE
+    | ACYCLIC
+}
+
+PathSearchPrefix = {
+    AllPathSearch
+    | AnyPathSearch
+    | ShortestPathSearch
+}
+
+AllPathSearch = {
+    ALL ~ PathMode? ~ PathOrPaths?
+}
+
+PathOrPaths = { PATH | PATHS }
+
+AnyPathSearch = {
+    ANY_ ~ NumberOfPaths? ~ PathMode? ~ PathOrPaths?
+}
+
+NumberOfPaths = { NonNegativeIntegerSpecification }
+
+ShortestPathSearch = {
+    AllShortestPathSearch
+    | AnyShortestPathSearch
+    | CountedShortestPathSearch
+    | CountedShortestGroupSearch
+}
+
+AllShortestPathSearch = {
+    ALL ~ SHORTEST ~ PathMode? ~ PathOrPaths?
+}
+
+AnyShortestPathSearch = {
+    ANY_ ~ SHORTEST ~ PathMode? ~ PathOrPaths?
+}
+
+CountedShortestPathSearch = {
+    SHORTEST ~ NumberOfPaths ~ PathMode? ~ PathOrPaths?
+}
+
+CountedShortestGroupSearch = {
+    SHORTEST ~ NumberOfGroups? ~ PathMode? ~ PathOrPaths? ~ (GROUP | GROUPS)
+}
+
+NumberOfGroups = { NonNegativeIntegerSpecification }
+
+PathPatternExpression = {
+    PathTerm | PathMultisetAlternation | PathPatternUnion
+}
+
+PathMultisetAlternation = {
+    PathTerm ~ MultisetAlternationOperator ~ PathTerm ~ ( MultisetAlternationOperator ~ PathTerm )*
+}
+PathPatternUnion = {
+    PathTerm ~ VerticalBar ~ PathTerm ~ ( VerticalBar ~ PathTerm )*
+}
+
+PathTerm = { PathConcatenation }
+
+PathConcatenation = { PathFactor+ }
+
+PathFactor = {
+    PathPrimary | QuantifiedPathPrimary | QuestionedPathPrimary
+}
+
+QuantifiedPathPrimary = { PathPrimary ~ GraphPatternQuantifier }
+
+QuestionedPathPrimary = { PathPrimary ~ QuestionMark }
+
+PathPrimary = {
+    ElementPattern | ParenthesizedPathPatternExpression | SimplifiedPathPatternExpression
+}
+
+ElementPattern = { NodePattern | EdgePattern }
+
+NodePattern = { LeftParen ~ ElementPatternFiller ~ RightParen }
+
+ElementPatternFiller = {
+    ElementVariableDeclaration? ~ IsLabelExpression? ~ ElementPatternPredicate?
+}
+
+ElementVariableDeclaration = {
+    TEMP? ~ ElementVariable
+}
+
+IsLabelExpression = { IsOrColon ~ LabelExpression }
+
+IsOrColon = { IS | Colon }
+
+ElementPatternPredicate = { ElementPatternWhereClause | ElementPropertySpecification }
+
+ElementPatternWhereClause = { WHERE ~ SearchCondition }
+
+ElementPropertySpecification = { LeftBrace ~ PropertyKeyValuePairList ~ RightBrace }
+
+PropertyKeyValuePairList = {
+    PropertyKeyValuePair ~ ( Comma ~ PropertyKeyValuePair )*
+}
+
+PropertyKeyValuePair = { PropertyName ~ Colon ~ ValueExpression }
+
+EdgePattern = { FullEdgePattern | AbbreviatedEdgePattern }
+
+FullEdgePattern = {
+    FullEdgePointingLeft
+    | FullEdgeUndirected
+    | FullEdgePointingRight
+    | FullEdgeLeftOrUndirected
+    | FullEdgeUndirectedOrRight
+    | FullEdgeLeftOrRight
+    | FullEdgeAnyDirection
+}
+
+FullEdgePointingLeft = { LeftArrowBracket ~ ElementPatternFiller ~ RightBracketMinus }
+
+FullEdgeUndirected = { TildeLeftBracket ~ ElementPatternFiller ~ RightBracketTilde }
+
+FullEdgePointingRight = { MinusLeftBracket ~ ElementPatternFiller ~ BracketRightArrow }
+
+FullEdgeLeftOrUndirected = { LeftArrowTildeBracket ~ ElementPatternFiller ~ RightBracketTilde }
+
+FullEdgeUndirectedOrRight = { TildeLeftBracket ~ ElementPatternFiller ~ BracketTildeRightArrow }
+
+FullEdgeLeftOrRight = { LeftArrowBracket ~ ElementPatternFiller ~ BracketRightArrow }
+
+FullEdgeAnyDirection = { MinusLeftBracket ~ ElementPatternFiller ~ RightBracketMinus }
+
+AbbreviatedEdgePattern = {
+    LeftArrow
+    | Tilde
+    | RightArrow
+    | LeftArrowTilde
+    | TildeRightArrow
+    | LeftMinusRight
+    | MinusSign
+}
+
+ParenthesizedPathPatternExpression = {
+    LeftParen ~ SubpathVariableDeclaration? ~ PathModePrefix? ~ PathPatternExpression ~ ParenthesizedPathPatternWhereClause? ~ RightParen
+}
+
+SubpathVariableDeclaration = { SubpathVariable ~ EqualsOperator }
+
+ParenthesizedPathPatternWhereClause = { WHERE ~ SearchCondition }
+
+LabelExpression = { LabelDisjunction }
+
+LabelDisjunction = { LabelTerm ~ ( VerticalBar ~ LabelTerm )* }
+
+LabelTerm = { LabelConjunction }
+
+LabelConjunction = { LabelFactor ~  ( Ampersand ~ LabelFactor )* }
+
+LabelFactor = { LabelPrimary | LabelNegation }
+
+LabelNegation = { ExclamationMark ~ LabelPrimary }
+
+LabelPrimary = {
+    LabelName | WildcardLabel | ParenthesizedLabelExpression
+}
+
+WildcardLabel = { Percent }
+
+ParenthesizedLabelExpression = { LeftParen ~ LabelExpression ~ RightParen }
+
+PathVariableReference = { BindingVariableReference }
+
+ElementVariableReference = { BindingVariableReference }
+
+GraphPatternQuantifier = {
+    Asterisk | PlusSign | FixedQuantifier | GeneralQuantifier
+}
+
+FixedQuantifier = { LeftBrace ~ UnsignedInteger ~ RightBrace }
+
+GeneralQuantifier = {
+    LeftBrace ~ LowerBound? ~ Comma ~ UpperBound? ~ RightBrace
+}
+
+LowerBound = { UnsignedInteger }
+
+UpperBound = { UnsignedInteger }
+
+SimplifiedPathPatternExpression = {
+    SimplifiedDefaultingLeft
+    | SimplifiedDefaultingUndirected
+    | SimplifiedDefaultingRight
+    | SimplifiedDefaultingLeftOrUndirected
+    | SimplifiedDefaultingUndirectedOrRight
+    | SimplifiedDefaultingLeftOrRight
+    | SimplifiedDefaultingAnyDirection
+}
+
+SimplifiedDefaultingLeft = { LeftMinusSlash ~ SimplifiedContents ~ SlashMinus }
+
+SimplifiedDefaultingUndirected = { TildeSlash ~ SimplifiedContents ~ SlashTilde }
+
+SimplifiedDefaultingRight = { MinusSlash ~ SimplifiedContents ~ SlashMinusRight }
+
+SimplifiedDefaultingLeftOrUndirected = { LeftTildeSlash ~ SimplifiedContents ~ SlashTilde }
+
+SimplifiedDefaultingUndirectedOrRight = { TildeSlash ~ SimplifiedContents ~ SlashTildeRight }
+
+SimplifiedDefaultingLeftOrRight = { LeftMinusSlash ~ SimplifiedContents ~ SlashMinusRight }
+
+SimplifiedDefaultingAnyDirection = { MinusSlash ~ SimplifiedContents ~ SlashMinus }
+
+SimplifiedContents = {
+    SimplifiedTerm
+    | SimplifiedPathUnion
+    | SimplifiedMultisetAlternation
+}
+SimplifiedPathUnion = {
+    SimplifiedTerm ~ VerticalBar ~ SimplifiedTerm ~ ( VerticalBar ~ SimplifiedTerm )*
+}
+SimplifiedMultisetAlternation = {
+    SimplifiedTerm ~ MultisetAlternationOperator ~ SimplifiedTerm ~ ( MultisetAlternationOperator ~ SimplifiedTerm )*
+}
+SimplifiedTerm = { SimplifiedConcatenation }
+
+SimplifiedConcatenation = { SimplifiedFactorLow+ }
+
+SimplifiedFactorLow = { SimplifiedConjunction }
+
+SimplifiedConjunction = { SimplifiedFactorHigh ~ ( Ampersand ~ SimplifiedFactorHigh )* }
+
+SimplifiedFactorHigh = {
+    SimplifiedTertiary
+    | SimplifiedQuantified
+    | SimplifiedQuestioned
+}
+
+SimplifiedQuantified = { SimplifiedTertiary ~ GraphPatternQuantifier }
+
+SimplifiedQuestioned = { SimplifiedTertiary ~ QuestionMark }
+
+SimplifiedTertiary = { SimplifiedDirectionOverride | SimplifiedSecondary }
+
+SimplifiedDirectionOverride = {
+    SimplifiedOverrideLeft
+    | SimplifiedOverrideUndirected
+    | SimplifiedOverrideRight
+    | SimplifiedOverrideLeftOrUndirected
+    | SimplifiedOverrideUndirectedOrRight
+    | SimplifiedOverrideLeftOrRight
+    | SimplifiedOverrideAnyDirection
+}
+
+SimplifiedOverrideLeft = { LeftAngleBracket ~ SimplifiedSecondary }
+
+SimplifiedOverrideUndirected = { Tilde ~ SimplifiedSecondary }
+
+SimplifiedOverrideRight = { SimplifiedSecondary ~ RightAngleBracket }
+
+SimplifiedOverrideLeftOrUndirected = { LeftArrowTilde ~ SimplifiedSecondary }
+
+SimplifiedOverrideUndirectedOrRight = { Tilde ~ SimplifiedSecondary ~ RightAngleBracket }
+
+SimplifiedOverrideLeftOrRight = { LeftAngleBracket ~ SimplifiedSecondary ~ RightAngleBracket }
+
+SimplifiedOverrideAnyDirection = { MinusSign ~ SimplifiedSecondary }
+
+SimplifiedSecondary = { SimplifiedPrimary | SimplifiedNegation }
+
+SimplifiedNegation = { ExclamationMark ~ SimplifiedPrimary }
+
+SimplifiedPrimary = {
+    LabelName
+    | LeftParen ~ SimplifiedContents ~ RightParen
+}
+
+WhereClause = { WHERE ~ SearchCondition }
+
+YieldClause = { YIELD ~ YieldItemList }
+
+YieldItemList = {
+    YieldItem ~ ( Comma ~ YieldItem )*
+}
+
+YieldItem = {
+    YieldItemName ~ YieldItemAlias?
+}
+
+YieldItemName = { FieldName }
+
+YieldItemAlias = { AS ~ BindingVariable }
+
+GroupByClause = { GROUP ~ BY ~ GroupingElementList }
+
+GroupingElementList = {
+    GroupingElement ~ ( Comma ~ GroupingElement )* | EmptyGroupingSet
+}
+
+GroupingElement = { BindingVariableReference }
+
+EmptyGroupingSet = { LeftParen ~ RightParen }
+
+OrderByClause = { ORDER ~ BY ~ SortSpecificationList }
+
+SortSpecificationList = {
+    SortSpecification ~ ( Comma ~ SortSpecification )*
+}
+
+SortSpecification = {
+    SortKey ~ OrderingSpecification? ~ NullOrdering?
+}
+
+SortKey = { AggregatingValueExpression }
+
+OrderingSpecification = {
+    ASC | ASCENDING | DESC | DESCENDING
+}
+
+NullOrdering = {
+    NULLS ~ FIRST
+    | NULLS ~ LAST
+}
+
+LimitClause = { LIMIT ~ NonNegativeIntegerSpecification }
+
+OffsetClause = { OffsetSynonym ~ NonNegativeIntegerSpecification }
+
+OffsetSynonym = { OFFSET | SKIP }
+
+SchemaReference = {
+    AbsoluteCatalogSchemaReference | RelativeCatalogSchemaReference | ReferenceParameterSpecification
+}
+
+AbsoluteCatalogSchemaReference = {
+    Solidus
+    | AbsoluteDirectoryPath ~ SchemaName
+}
+
+CatalogSchemaParentAndName = { AbsoluteDirectoryPath ~ SchemaName }
+
+RelativeCatalogSchemaReference = {
+    PredefinedSchemaReference
+    | RelativeDirectoryPath ~ SchemaName
+}
+
+PredefinedSchemaReference = {
+    HOME_SCHEMA | CURRENT_SCHEMA | Period
+}
+
+AbsoluteDirectoryPath = {
+    Solidus ~ SimpleDirectoryPath?
+}
+
+RelativeDirectoryPath = {
+    DoublePeriod ~ ( ( Solidus ~ DoublePeriod )+ ~ Solidus ~ SimpleDirectoryPath? )?
+}
+
+SimpleDirectoryPath = {
+    ( DirectoryName ~ Solidus )+
+}
+
+GraphReference = {
+    CatalogObjectParentReference ~ GraphName
+    | DelimitedGraphName
+    | HomeGraph
+    | ReferenceParameterSpecification
+}
+
+CatalogGraphParentAndName = {
+    CatalogObjectParentReference? ~ GraphName
+}
+
+HomeGraph = {
+    HOME_PROPERTY_GRAPH | HOME_GRAPH
+}
+
+GraphTypeReference = { CatalogGraphTypeParentAndName | ReferenceParameterSpecification }
+
+CatalogGraphTypeParentAndName = {
+    CatalogObjectParentReference? ~ GraphTypeName
+}
+
+BindingTableReference = {
+    CatalogObjectParentReference ~ BindingTableName
+    | DelimitedBindingTableName
+    | ReferenceParameterSpecification
+}
+
+CatalogBindingTableParentAndName = {
+    CatalogObjectParentReference? ~ BindingTableName
+}
+
+ProcedureReference = { CatalogProcedureParentAndName | ReferenceParameterSpecification }
+
+CatalogProcedureParentAndName = {
+    CatalogObjectParentReference? ~ ProcedureName
+}
+
+CatalogObjectParentReference = {
+    SchemaReference ~ Solidus? ~ ( ObjectName ~ Period )*
+    | ( ObjectName ~ Period )+
+}
+
+ReferenceParameterSpecification = { SubstitutedParameterReference }
+
+/*
+ExternalObjectReference = {
+// See the Syntax Rules.
+}
+*/
+
+NestedGraphTypeSpecification = { LeftBrace ~ GraphTypeSpecificationBody ~ RightBrace }
+
+GraphTypeSpecificationBody = { ElementTypeList }
+
+ElementTypeList = {
+    ElementTypeSpecification ~ ( Comma ~ ElementTypeSpecification )*
+}
+
+ElementTypeSpecification = { NodeTypeSpecification | EdgeTypeSpecification }
+
+NodeTypeSpecification = { NodeTypePattern | NodeTypePhrase }
+
+NodeTypePattern = {
+    NodeSynonym ~ ( TYPE? ~ NodeTypeName )? ~ LeftParen ~ LocalNodeTypeAlias? ~ NodeTypeFiller? ~ RightParen
+}
+
+NodeTypePhrase = {
+    NodeSynonym ~ TYPE? ~ NodeTypePhraseFiller ~ AS ~ LocalNodeTypeAlias?
+}
+
+NodeTypePhraseFiller = {
+    NodeTypeName ~ NodeTypeFiller? | NodeTypeFiller
+}
+
+NodeTypeFiller = {
+    NodeTypeKeyLabelSet ~ NodeTypeImpliedContent? | NodeTypeImpliedContent
+}
+
+LocalNodeTypeAlias = { RegularIdentifier }
+
+NodeTypeImpliedContent = {
+    NodeTypeLabelSet
+    | NodeTypePropertyTypes
+    | NodeTypeLabelSet ~ NodeTypePropertyTypes
+}
+
+NodeTypeKeyLabelSet = {
+    LabelSetPhrase? ~ Implies
+}
+
+NodeTypeLabelSet = { LabelSetPhrase }
+
+NodeTypePropertyTypes = { PropertyTypesSpecification }
+
+EdgeTypeSpecification = { EdgeTypePattern | EdgeTypePhrase }
+
+EdgeTypePattern = {
+    ( EdgeKind? ~ EdgeSynonym ~ TYPE? ~ EdgeTypeName )? ~ ( EdgeTypePatternDirected | EdgeTypePatternUndirected )
+}
+
+EdgeTypePhrase = {
+    EdgeKind ~ EdgeSynonym ~ TYPE? ~ EdgeTypePhraseFiller ~ EndpointPairPhrase
+}
+
+EdgeTypePhraseFiller = {
+    EdgeTypeName ~ EdgeTypeFiller? | EdgeTypeFiller
+}
+
+EdgeTypeFiller = {
+    EdgeTypeKeyLabelSet ~ EdgeTypeImpliedContent? | EdgeTypeImpliedContent
+}
+
+EdgeTypeImpliedContent = {
+    EdgeTypeLabelSet
+    | EdgeTypePropertyTypes
+    | EdgeTypeLabelSet ~ EdgeTypePropertyTypes
+}
+
+EdgeTypeKeyLabelSet = {
+    LabelSetPhrase? ~ Implies
+}
+
+EdgeTypeLabelSet = { LabelSetPhrase }
+
+EdgeTypePropertyTypes = { PropertyTypesSpecification }
+
+EdgeTypePatternDirected = { EdgeTypePatternPointingRight | EdgeTypePatternPointingLeft }
+
+EdgeTypePatternPointingRight = { SourceNodeTypeReference ~ ArcTypePointingRight ~ DestinationNodeTypeReference }
+
+EdgeTypePatternPointingLeft = { DestinationNodeTypeReference ~ ArcTypePointingLeft ~ SourceNodeTypeReference }
+
+EdgeTypePatternUndirected = { SourceNodeTypeReference ~ ArcTypeUndirected ~ DestinationNodeTypeReference }
+
+ArcTypePointingRight = { MinusLeftBracket ~ EdgeTypeFiller ~ BracketRightArrow }
+
+ArcTypePointingLeft = { LeftArrowBracket ~ EdgeTypeFiller ~ RightBracketMinus }
+
+ArcTypeUndirected = { TildeLeftBracket ~ EdgeTypeFiller ~ RightBracketTilde }
+
+SourceNodeTypeReference = {
+    LeftParen ~ SourceNodeTypeAlias ~ RightParen
+    | LeftParen ~ NodeTypeFiller? ~ RightParen
+}
+
+DestinationNodeTypeReference = {
+    LeftParen ~ DestinationNodeTypeAlias ~ RightParen
+    | LeftParen ~ NodeTypeFiller? ~ RightParen
+}
+
+EdgeKind = { DIRECTED | UNDIRECTED }
+
+EndpointPairPhrase = { CONNECTING ~ EndpointPair }
+
+EndpointPair = { EndpointPairDirected | EndpointPairUndirected }
+
+EndpointPairDirected = { EndpointPairPointingRight | EndpointPairPointingLeft }
+
+EndpointPairPointingRight = { LeftParen ~ SourceNodeTypeAlias ~ ConnectorPointingRight ~ DestinationNodeTypeAlias ~ RightParen }
+
+EndpointPairPointingLeft = { LeftParen ~ DestinationNodeTypeAlias ~ LeftArrow ~ SourceNodeTypeAlias ~ RightParen }
+
+EndpointPairUndirected = { LeftParen ~ SourceNodeTypeAlias ~ ConnectorUndirected ~ DestinationNodeTypeAlias ~ RightParen }
+
+ConnectorPointingRight = { TO | RightArrow }
+
+ConnectorUndirected = { TO | Tilde }
+
+SourceNodeTypeAlias = { RegularIdentifier }
+
+DestinationNodeTypeAlias = { RegularIdentifier }
+
+LabelSetPhrase = {
+    LABEL ~ LabelName
+    | LABELS ~ LabelSetSpecification
+    | IsOrColon ~ LabelSetSpecification
+}
+
+LabelSetSpecification = {
+    LabelName ~ ( Ampersand ~ LabelName )*
+}
+
+PropertyTypesSpecification = {
+    LeftBrace ~ PropertyTypeList? ~ RightBrace
+}
+
+PropertyTypeList = {
+    PropertyType ~ ( Comma ~ PropertyType )*
+}
+
+PropertyType = {
+    PropertyName ~ Typed? ~ PropertyValueType
+}
+
+PropertyValueType = { ValueType }
+
+BindingTableType = {
+    BINDING? ~ TABLE ~ FieldTypesSpecification
+}
+
+ValueType = {
+    PredefinedType
+    | ConstructedValueType
+    | DynamicUnionType
+}
+
+Typed = { DoubleColon | TYPED }
+
+PredefinedType = {
+    BooleanType
+    | CharacterStringType
+    | ByteStringType
+    | NumericType
+    | TemporalType
+    | ReferenceValueType
+    | ImmaterialValueType
+}
+
+BooleanType = {
+    (BOOL | BOOLEAN) ~ NotNull?
+}
+
+CharacterStringType = {
+    STRING ~ LeftParen ~ ( MinLength ~ Comma? ~ MaxLength ~ RightParen )? ~ NotNull?
+    | CHAR ~ LeftParen ~ FixedLength ~ RightParen? ~ NotNull?
+    | VARCHAR ~ LeftParen ~ MaxLength ~ RightParen? ~ NotNull?
+}
+
+ByteStringType = {
+    BYTES ~ LeftParen ~ ( MinLength ~ Comma? ~ MaxLength ~ RightParen )? ~ NotNull?
+    | BINARY ~ LeftParen ~ FixedLength ~ RightParen? ~ NotNull?
+    | VARBINARY ~ LeftParen ~ MaxLength ~ RightParen? ~ NotNull?
+}
+
+MinLength = { UnsignedInteger }
+
+MaxLength = { UnsignedInteger }
+
+FixedLength = { UnsignedInteger }
+
+NumericType = { ExactNumericType | ApproximateNumericType }
+
+ExactNumericType = { BinaryExactNumericType | DecimalExactNumericType }
+
+BinaryExactNumericType = { SignedBinaryExactNumericType | UnsignedBinaryExactNumericType }
+
+SignedBinaryExactNumericType = {
+    INT8 ~ NotNull?
+    | INT16 ~ NotNull?
+    | INT32 ~ NotNull? 
+    | INT64 ~ NotNull?
+    | INT128 ~ NotNull?
+    | INT256 ~ NotNull?
+    | SMALLINT ~ NotNull?
+    | INT ~ LeftParen ~ Precision ~ RightParen? ~ NotNull?
+    | BIGINT ~ NotNull?
+    | SIGNED? ~ VerboseBinaryExactNumericType
+}
+
+UnsignedBinaryExactNumericType = {
+    UINT8 ~ NotNull?
+    | (UINT16 ~ NotNull?)
+    | UINT32 ~ NotNull?
+    | UINT64 ~ NotNull?
+    | UINT128 ~ NotNull?
+    | UINT256 ~ NotNull?
+    | USMALLINT ~ NotNull?
+    | UINT ~ LeftParen ~ Precision ~ RightParen? ~ NotNull?
+    | UBIGINT ~ NotNull?
+    | UNSIGNED ~ VerboseBinaryExactNumericType
+}
+
+VerboseBinaryExactNumericType = {
+    INTEGER8 ~ NotNull?
+    | INTEGER16 ~ NotNull?
+    | INTEGER32 ~ NotNull?
+    | INTEGER64 ~ NotNull?
+    | INTEGER128 ~ NotNull?
+    | INTEGER256 ~ NotNull?
+    | SMALL ~ INTEGER ~ NotNull?
+    | INTEGER ~ LeftParen ~ Precision ~ RightParen? ~ NotNull?
+    | BIG ~ INTEGER ~ NotNull?
+}
+
+DecimalExactNumericType = {
+    ( DECIMAL | DEC ) ~ LeftParen ~ Precision ~ ( Comma ~ Scale? ~ RightParen ~ NotNull? )?
+}
+
+Precision = { UnsignedDecimalInteger }
+Scale = { UnsignedDecimalInteger }
+ApproximateNumericType = {
+    FLOAT16 ~ NotNull?
+    | FLOAT32 ~ NotNull?
+    | FLOAT64 ~ NotNull?
+    | FLOAT128 ~ NotNull?
+    | FLOAT256 ~ NotNull?
+    | FLOAT ~ LeftParen ~ Precision ~ ((Comma ~ Scale? ~ RightParen)? ~ NotNull?)
+    | REAL ~ NotNull?
+    | DOUBLE ~ PRECISION? ~ NotNull?
+}
+
+TemporalType = { TemporalInstantType | TemporalDurationType }
+
+TemporalInstantType = {
+    DatetimeType
+    | LocaldatetimeType
+    | DateType
+    | TimeType
+    | LocaltimeType
+}
+
+DatetimeType = {
+    ZONED ~ DATETIME ~ NotNull?
+    | TIMESTAMP ~ WITH ~ TIME ~ ZONE ~ NotNull?
+}
+
+LocaldatetimeType = {
+    LOCAL ~ DATETIME ~ NotNull?
+    | TIMESTAMP ~ WITHOUT ~ TIME ~ ZONE? ~ NotNull?
+}
+
+DateType = {
+    DATE ~ NotNull?
+}
+
+TimeType = {
+    ZONED ~ TIME ~ NotNull?
+    | TIME ~ WITH ~ TIME ~ ZONE ~ NotNull?
+}
+
+LocaltimeType = {
+    LOCAL ~ TIME ~ NotNull?
+    | TIME ~ WITHOUT ~ TIME ~ ZONE ~ NotNull?
+}
+
+TemporalDurationType = {
+    DURATION ~ LeftParen ~ TemporalDurationQualifier ~ RightParen ~ NotNull?
+}
+
+TemporalDurationQualifier = {
+    YEAR ~ TO ~ MONTH 
+    | DAY ~ TO ~ SECOND
+}
+
+ReferenceValueType = {
+    GraphReferenceValueType
+    | BindingTableReferenceValueType
+    | NodeReferenceValueType
+    | EdgeReferenceValueType
+}
+
+ImmaterialValueType = { NullType | EmptyType }
+NullType = { NULL }
+EmptyType = {
+    NULL ~ NotNull
+    | NOTHING
+}
+
+GraphReferenceValueType = { OpenGraphReferenceValueType | ClosedGraphReferenceValueType }
+
+ClosedGraphReferenceValueType = {
+    PROPERTY? ~ GRAPH ~ NestedGraphTypeSpecification ~ NotNull?
+}
+
+OpenGraphReferenceValueType = {
+    ANY_? ~ PROPERTY? ~ GRAPH ~ NotNull?
+}
+
+BindingTableReferenceValueType = {
+    BindingTableType ~ NotNull?
+}
+
+NodeReferenceValueType = { OpenNodeReferenceValueType | ClosedNodeReferenceValueType }
+
+ClosedNodeReferenceValueType = {
+    NodeTypeSpecification ~ NotNull?
+}
+
+OpenNodeReferenceValueType = {
+    ANY_? ~ NodeSynonym ~ NotNull?
+}
+
+EdgeReferenceValueType = { OpenEdgeReferenceValueType | ClosedEdgeReferenceValueType }
+ClosedEdgeReferenceValueType = {
+    EdgeTypeSpecification ~ NotNull?
+}
+
+OpenEdgeReferenceValueType = {
+    ANY_? ~ EdgeSynonym ~ NotNull?
+}
+
+ConstructedValueType = {
+    PathValueType
+    | ListValueType
+    | RecordType
+}
+
+PathValueType = {
+    PATH ~ NotNull?
+}
+
+ListValueType = {
+    ( 
+        ListValueTypeName ~ LeftAngleBracket ~ ValueType ~ RightAngleBracket
+        | ValueType? ~ ListValueTypeName 
+    ) ~ ( LeftBracket ~ MaxLength ~ RightBracket )? ~ NotNull?
+}
+
+ListValueTypeName = {
+    GROUP? ~ ListValueTypeNameSynonym
+}
+
+ListValueTypeNameSynonym = { LIST | ARRAY }
+
+RecordType = {
+    ANY_? ~ RECORD ~ NotNull?
+    | RECORD? ~ FieldTypesSpecification ~ NotNull?
+}
+
+FieldTypesSpecification = {
+    LeftBrace ~ FieldTypeList? ~ RightBrace
+}
+
+FieldTypeList = {
+    FieldType ~ ( Comma ~ FieldType )*
+}
+
+DynamicUnionType = {
+    OpenDynamicUnionType
+    | DynamicPropertyValueType
+    | ClosedDynamicUnionType
+}
+
+OpenDynamicUnionType = {
+    ANY_ ~ VALUE? ~ NotNull?
+}
+
+DynamicPropertyValueType = {
+    ANY_? ~ PROPERTY ~ VALUE ~ NotNull?
+}
+
+ClosedDynamicUnionType = {
+    ANY_ ~ VALUE? ~ LeftAngleBracket ~ ComponentTypeList ~ RightAngleBracket
+}
+
+ComponentTypeList = {
+    ComponentType ~ ( VerticalBar ~ ComponentType )*
+}
+
+ComponentType = { ValueType }
+
+NotNull = { NOT ~ NULL }
+
+FieldType = {
+    FieldName ~ Typed? ~ ValueType
+}
+SearchCondition = { BooleanValueExpression }
+
+Predicate = {
+    ComparisonPredicate
+    | ExistsPredicate
+    | NullPredicate
+    | NormalizedPredicate
+    | ValueTypePredicate
+    | DirectedPredicate
+    | LabeledPredicate
+    | SourceDestinationPredicate
+    | AllDifferentPredicate
+    | SamePredicate
+    | PropertyExistsPredicate
+}
+
+ComparisonPredicate = { ComparisonPredicand ~ ComparisonPredicatePart2 }
+
+ComparisonPredicatePart2 = { CompOp ~ ComparisonPredicand }
+
+CompOp = {
+    EqualsOperator
+    | NotEqualsOperator
+    | LessThanOperator
+    | GreaterThanOperator
+    | LessThanOrEqualsOperator
+    | GreaterThanOrEqualsOperator
+}
+
+ComparisonPredicand = { CommonValueExpression | BooleanPredicand }
+
+ExistsPredicate = {
+    EXISTS ~ (
+        LeftBrace ~ GraphPattern ~ RightBrace
+        | LeftParen ~ GraphPattern ~ RightParen
+        | LeftBrace ~ MatchStatementBlock ~ RightBrace
+        | LeftParen ~ MatchStatementBlock ~ RightParen
+        | NestedQuerySpecification
+    )
+}
+
+NullPredicate = { ValueExpressionPrimary ~ NullPredicatePart2 }
+
+NullPredicatePart2 = {
+    IS ~ NOT? ~ NULL
+}
+
+ValueTypePredicate = { ValueExpressionPrimary ~ ValueTypePredicatePart2 }
+
+ValueTypePredicatePart2 = {
+    IS ~ NOT? ~ Typed ~ ValueType
+}
+
+NormalizedPredicate = { StringValueExpression ~ NormalizedPredicatePart2 }
+
+NormalizedPredicatePart2 = {
+    IS ~ NOT? ~ NormalForm? ~ NORMALIZED
+}
+
+DirectedPredicate = { ElementVariableReference ~ DirectedPredicatePart2 }
+
+DirectedPredicatePart2 = {
+    IS ~ NOT? ~ DIRECTED
+}
+
+LabeledPredicate = { ElementVariableReference ~ LabeledPredicatePart2 }
+
+LabeledPredicatePart2 = { IsLabeledOrColon ~ LabelExpression }
+
+IsLabeledOrColon = {
+    IS ~ NOT? ~ LABELED
+    | Colon
+}
+
+SourceDestinationPredicate = {
+    NodeReference ~ SourcePredicatePart2
+    | NodeReference ~ DestinationPredicatePart2
+}
+
+NodeReference = { ElementVariableReference }
+
+SourcePredicatePart2 = {
+    IS ~ NOT? ~ SOURCE ~ OF ~ EdgeReference
+}
+
+DestinationPredicatePart2 = {
+    IS ~ NOT? ~ DESTINATION ~ OF ~ EdgeReference
+}
+
+EdgeReference = { ElementVariableReference }
+
+AllDifferentPredicate = {
+    ALL_DIFFERENT
+    ~ LeftParen
+    ~ ElementVariableReference
+    ~ Comma
+    ~ ElementVariableReference
+    ~ ( Comma ~ ElementVariableReference )*
+    ~ RightParen
+}
+
+SamePredicate = {
+    SAME ~ LeftParen ~ ElementVariableReference ~ Comma ~ ElementVariableReference ~ ( Comma ~ ElementVariableReference )* ~ RightParen
+}
+
+PropertyExistsPredicate = { PROPERTY_EXISTS ~ LeftParen ~ ElementVariableReference ~ Comma ~ PropertyName ~ RightParen }
+
+ValueExpression = { CommonValueExpression | BooleanValueExpression }
+
+CommonValueExpression = {
+    NumericValueExpression
+    | StringValueExpression
+    | DatetimeValueExpression
+    | DurationValueExpression
+    | ListValueExpression
+    | RecordExpression
+    | PathValueExpression
+    | ReferenceValueExpression
+}
+
+ReferenceValueExpression = {
+    GraphReferenceValueExpression
+    | BindingTableReferenceValueExpression
+    | NodeReferenceValueExpression
+    | EdgeReferenceValueExpression
+}
+
+GraphReferenceValueExpression = {
+    PROPERTY? ~ GRAPH ~ GraphExpression | ValueExpressionPrimary
+}
+
+BindingTableReferenceValueExpression = {
+    BINDING? ~ TABLE ~ BindingTableExpression | ValueExpressionPrimary
+}
+
+NodeReferenceValueExpression = { ValueExpressionPrimary }
+
+EdgeReferenceValueExpression = { ValueExpressionPrimary }
+
+RecordExpression = { ValueExpressionPrimary }
+
+AggregatingValueExpression = { ValueExpression }
+
+ValueExpressionPrimary = {
+    ValueExpressionPrimaryX ~ PropertyReference?
+}
+
+ValueExpressionPrimaryX = {
+    ParenthesizedValueExpression
+    | NonParenthesizedValueExpressionPrimary
+}
+
+ParenthesizedValueExpression = { LeftParen ~ ValueExpression ~ RightParen }
+
+NonParenthesizedValueExpressionPrimary = { 
+    NonParenthesizedValueExpressionPrimarySpecialCase
+    | BindingVariableReference
+}
+
+NonParenthesizedValueExpressionPrimarySpecialCase = {
+    AggregateFunction
+    | UnsignedValueSpecification
+    // List and Record literals are reduntantly/abiguously part of the literal production
+    // | ListValueConstructor
+    // | RecordConstructor
+    | PathValueConstructor
+    | ValueQueryExpression
+    | CaseExpression
+    | CastSpecification
+    | ElementIdFunction
+    | LetValueExpression
+}
+
+ValueSpecification = { Literal | GeneralValueSpecification }
+
+UnsignedValueSpecification = { UnsignedLiteral | GeneralValueSpecification }
+
+NonNegativeIntegerSpecification = { UnsignedInteger | DynamicParameterSpecification }
+
+GeneralValueSpecification = {
+    DynamicParameterSpecification | SESSION_USER
+}
+
+DynamicParameterSpecification = { GeneralParameterReference }
+
+LetValueExpression = { LET ~ LetVariableDefinitionList ~ IN ~ ValueExpression ~ END }
+
+ValueQueryExpression = { VALUE ~ NestedQuerySpecification }
+
+CaseExpression = { CaseAbbreviation | CaseSpecification }
+
+CaseAbbreviation = {
+    NULLIF ~ LeftParen ~ ValueExpression ~ Comma ~ ValueExpression ~ RightParen
+    | COALESCE ~ LeftParen ~ ValueExpression ~ ( Comma ~ ValueExpression )+ ~ RightParen
+}
+
+CaseSpecification = { SimpleCase | SearchedCase }
+
+SimpleCase = {
+    CASE ~ CaseOperand ~ SimpleWhenClause+ ~ ElseClause? ~ END
+}
+
+SearchedCase = {
+    CASE ~ SearchedWhenClause+ ~ ElseClause? ~ END
+}
+
+SimpleWhenClause = { WHEN ~ WhenOperandList ~ THEN ~ Result }
+
+SearchedWhenClause = { WHEN ~ SearchCondition ~ THEN ~ Result }
+
+ElseClause = { ELSE ~ Result }
+
+CaseOperand = { NonParenthesizedValueExpressionPrimary | ElementVariableReference }
+
+WhenOperandList = {
+    WhenOperand ~ ( Comma ~ WhenOperand )*
+}
+
+WhenOperand = {
+    NonParenthesizedValueExpressionPrimary
+    | ComparisonPredicatePart2
+    | NullPredicatePart2
+    | ValueTypePredicatePart2
+    | NormalizedPredicatePart2
+    | DirectedPredicatePart2
+    | LabeledPredicatePart2
+    | SourcePredicatePart2
+    | DestinationPredicatePart2
+}
+
+Result = { ResultExpression | NullLiteral }
+
+ResultExpression = { ValueExpression }
+
+CastSpecification = { CAST ~ LeftParen ~ CastOperand ~ AS ~ CastTarget ~ RightParen }
+
+CastOperand = { ValueExpression | NullLiteral }
+
+CastTarget = { ValueType }
+
+AggregateFunction = {
+    COUNT ~ LeftParen ~ Asterisk ~ RightParen
+    | GeneralSetFunction
+    | BinarySetFunction
+}
+
+GeneralSetFunction = {
+    GeneralSetFunctionType ~ LeftParen ~ SetQuantifier? ~ ValueExpression ~ RightParen
+}
+
+BinarySetFunction = { BinarySetFunctionType ~ LeftParen ~ DependentValueExpression ~ Comma ~ IndependentValueExpression ~ RightParen }
+
+GeneralSetFunctionType = {
+    AVG
+    | COUNT
+    | MAX
+    | MIN
+    | SUM
+    | COLLECT_LIST
+    | STDDEV_SAMP
+    | STDDEV_POP
+}
+
+SetQuantifier = { DISTINCT | ALL }
+
+BinarySetFunctionType = {
+    PERCENTILE_CONT | PERCENTILE_DISC
+}
+
+DependentValueExpression = {
+    SetQuantifier? ~ NumericValueExpression
+}
+
+IndependentValueExpression = { NumericValueExpression }
+
+ElementIdFunction = { ELEMENT_ID ~ LeftParen ~ ElementVariableReference ~ RightParen }
+
+PropertyReference = { ( Period ~ PropertyName )+ }
+
+PropertySource = {
+    NodeReferenceValueExpression
+    | EdgeReferenceValueExpression
+    | RecordExpression
+}
+
+BindingVariableReference = { BindingVariable }
+
+PathValueExpression = { PathValueConcatenation }
+
+PathValueConcatenation = { PathValuePrimary ~ ( ConcatenationOperator ~ PathValuePrimary )* }
+
+PathValueExpression1 = { PathValueExpression }
+
+PathValuePrimary = { ValueExpressionPrimary }
+
+PathValueConstructor = { PathValueConstructorByEnumeration }
+
+PathValueConstructorByEnumeration = { PATH ~ LeftBracket ~ PathElementList ~ RightBracket }
+
+PathElementList = {
+    PathElementListStart ~ PathElementListStep*
+}
+
+PathElementListStart = { NodeReferenceValueExpression }
+
+PathElementListStep = { Comma ~ EdgeReferenceValueExpression ~ Comma ~ NodeReferenceValueExpression }
+
+ListValueExpression = { ListConcatenation }
+
+ListConcatenation = { ListPrimary ~ ( ConcatenationOperator ~ ListPrimary )* }
+
+ListValueExpression1 = { ListValueExpression }
+
+ListPrimary = { ListValueFunction | ValueExpressionPrimary }
+
+ListValueFunction = { TrimListFunction | ElementsFunction }
+
+TrimListFunction = { TRIM ~ LeftParen ~ ListValueExpression ~ Comma ~ NumericValueExpression ~ RightParen }
+
+ElementsFunction = { ELEMENTS ~ LeftParen ~ PathValueExpression ~ RightParen }
+
+ListValueConstructor = { ListValueConstructorByEnumeration }
+
+ListValueConstructorByEnumeration = {
+    ListValueTypeName? ~ LeftBracket ~ ListElementList? ~ RightBracket
+}
+
+ListElementList = {
+    ListElement ~ ( Comma ~ ListElement )*
+}
+
+ListElement = { ValueExpression }
+
+RecordConstructor = {
+    RECORD? ~ FieldsSpecification
+}
+
+FieldsSpecification = {
+    LeftBrace ~ FieldList? ~ RightBrace
+}
+
+FieldList = {
+    Field ~ ( Comma ~ Field )*
+}
+
+Field = { FieldName ~ Colon ~ ValueExpression }
+
+BooleanValueExpression = {
+    BooleanValueXorExpression ~ ( OR ~ BooleanValueXorExpression )*
+}
+
+BooleanValueXorExpression = {
+    BooleanValueAndExpression ~ ( XOR ~ BooleanValueAndExpression )*
+}
+
+BooleanValueAndExpression = {
+    BooleanTerm ~ ( AND ~ BooleanTerm )*
+}
+
+BooleanTerm = {
+    BooleanFactor
+}
+
+BooleanFactor = {
+    NOT? ~ BooleanTest
+}
+
+BooleanTest = {
+    BooleanPrimary ~ IS ~ ( NOT? ~ TruthValue )?
+}
+
+TruthValue = {
+    TRUE | FALSE | UNKNOWN
+}
+
+BooleanPrimary = { Predicate | BooleanPredicand }
+
+BooleanPredicand = { ParenthesizedBooleanValueExpression | NonParenthesizedValueExpressionPrimary }
+
+ParenthesizedBooleanValueExpression = { LeftParen ~ BooleanValueExpression ~ RightParen }
+
+NumericValueExpression = {
+    Term ~ ( ( PlusSign | MinusSign ) ~ Term )*
+}
+
+Term = {
+    Factor ~ ( ( Asterisk | Solidus ) ~ Factor )*
+}
+
+
+Factor = {
+    Sign? ~ NumericPrimary
+}
+
+NumericPrimary = { ValueExpressionPrimary | NumericValueFunction }
+
+NumericValueFunction = {
+    LengthExpression
+    | CardinalityExpression
+    | AbsoluteValueExpression
+    | ModulusExpression
+    | TrigonometricFunction
+    | GeneralLogarithmFunction
+    | CommonLogarithm
+    | NaturalLogarithm
+    | ExponentialFunction
+    | PowerFunction
+    | SquareRoot
+    | FloorFunction
+    | CeilingFunction
+}
+
+LengthExpression = {
+    CharLengthExpression
+    | ByteLengthExpression
+    | PathLengthExpression
+}
+
+CardinalityExpression = {
+    CARDINALITY ~ LeftParen ~ CardinalityExpressionArgument ~ RightParen
+    | SIZE ~ LeftParen ~ ListValueExpression ~ RightParen
+}
+
+CardinalityExpressionArgument = {
+    BindingTableReferenceValueExpression
+    | PathValueExpression
+    | ListValueExpression
+    | RecordExpression
+}
+
+CharLengthExpression = {
+    ((CHAR_LENGTH) | (CHARACTER_LENGTH)) ~ LeftParen ~ CharacterStringValueExpression ~ RightParen
+}
+
+ByteLengthExpression = {
+    ( BYTE_LENGTH | OCTET_LENGTH ) ~ LeftParen ~ ByteStringValueExpression ~ RightParen
+}
+PathLengthExpression = { PATH_LENGTH ~ LeftParen ~ PathValueExpression ~ RightParen }
+
+AbsoluteValueExpression = { ABS ~ LeftParen ~ NumericValueExpression ~ RightParen }
+
+ModulusExpression = { MOD ~ LeftParen ~ NumericValueExpressionDividend ~ Comma ~ NumericValueExpressionDivisor ~ RightParen }
+
+NumericValueExpressionDividend = { NumericValueExpression }
+
+NumericValueExpressionDivisor = { NumericValueExpression }
+
+TrigonometricFunction = { TrigonometricFunctionName ~ LeftParen ~ NumericValueExpression ~ RightParen }
+
+TrigonometricFunctionName = {
+    SIN | COS | TAN | COT | SINH | COSH | TANH | ASIN | ACOS | ATAN | DEGREES | RADIANS
+}
+
+GeneralLogarithmFunction = { LOG ~ LeftParen ~ GeneralLogarithmBase ~ Comma ~ GeneralLogarithmArgument ~ RightParen }
+
+GeneralLogarithmBase = { NumericValueExpression }
+
+GeneralLogarithmArgument = { NumericValueExpression }
+
+CommonLogarithm = { LOG10 ~ LeftParen ~ NumericValueExpression ~ RightParen }
+
+NaturalLogarithm = { LN ~ LeftParen ~ NumericValueExpression ~ RightParen }
+
+ExponentialFunction = { EXP ~ LeftParen ~ NumericValueExpression ~ RightParen }
+
+PowerFunction = { POWER ~ LeftParen ~ NumericValueExpressionBase ~ Comma ~ NumericValueExpressionExponent ~ RightParen }
+
+NumericValueExpressionBase = { NumericValueExpression }
+
+NumericValueExpressionExponent = { NumericValueExpression }
+
+SquareRoot = { SQRT ~ LeftParen ~ NumericValueExpression ~ RightParen }
+
+FloorFunction = { FLOOR ~ LeftParen ~ NumericValueExpression ~ RightParen }
+
+CeilingFunction = {
+    ( CEIL | CEILING ) ~ LeftParen ~ NumericValueExpression ~ RightParen
+}
+
+StringValueExpression = { CharacterStringValueExpression | ByteStringValueExpression }
+
+CharacterStringValueExpression = { CharacterStringConcatenation }
+
+CharacterStringConcatenation = { CharacterStringPrimary ~ ( ConcatenationOperator ~ CharacterStringPrimary )* }
+
+CharacterStringPrimary = { ValueExpressionPrimary | CharacterStringFunction }
+
+ByteStringValueExpression = { ByteStringConcatenation }
+
+ByteStringPrimary = { ValueExpressionPrimary | ByteStringFunction }
+
+ByteStringConcatenation = { ByteStringPrimary ~ ( ConcatenationOperator ~ ByteStringPrimary )* }
+
+CharacterStringFunction = {
+    SubstringFunction | Fold | TrimFunction | NormalizeFunction
+}
+
+SubstringFunction = {
+    ( LEFT | RIGHT ) ~ LeftParen ~ CharacterStringValueExpression ~ Comma ~ StringLength ~ RightParen
+}
+
+Fold = {
+    ( UPPER | LOWER ) ~ LeftParen ~ CharacterStringValueExpression ~ RightParen
+}
+
+TrimFunction = { SingleCharacterTrimFunction | MultiCharacterTrimFunction }
+
+SingleCharacterTrimFunction = { TRIM ~ LeftParen ~ TrimOperands ~ RightParen }
+
+MultiCharacterTrimFunction = {
+    ( BTRIM | LTRIM | RTRIM ) ~ LeftParen ~ TrimSource ~ Comma ~ TrimCharacterString? ~ RightParen
+}
+
+TrimOperands = {
+    ( TrimSpecification? ~ TrimCharacterString? ~ FROM )? ~ TrimSource
+}
+
+TrimSource = { CharacterStringValueExpression }
+
+TrimSpecification = {
+    LEADING | TRAILING | BOTH
+}
+
+TrimCharacterString = { CharacterStringValueExpression }
+
+NormalizeFunction = {
+    NORMALIZE ~ LeftParen ~ CharacterStringValueExpression ~ Comma ~ NormalForm? ~ RightParen
+}
+
+NormalForm = {
+    NFC | NFD | NFKC | NFKD
+}
+
+StringLength = { NumericValueExpression }
+
+ByteStringFunction = { ByteStringSubstringFunction | ByteStringTrimFunction }
+
+ByteStringSubstringFunction = {
+    ( LEFT | RIGHT ) ~ LeftParen ~ ByteStringValueExpression ~ Comma ~ StringLength ~ RightParen
+}
+
+ByteStringTrimFunction = { TRIM ~ LeftParen ~ ByteStringTrimOperands ~ RightParen }
+
+ByteStringTrimOperands = {
+    ( TrimSpecification? ~ TrimByteString? ~ FROM )? ~ ByteStringTrimSource
+}
+
+ByteStringTrimSource = { ByteStringValueExpression }
+
+TrimByteString = { ByteStringValueExpression }
+
+DatetimeValueExpression = {
+    DatetimePrimary
+    | DurationValueExpression ~ PlusSign ~ DatetimePrimary
+    /* TODO
+    | DatetimeValueExpression ~ PlusSign ~ DurationTerm
+    | DatetimeValueExpression ~ MinusSign ~ DurationTerm
+    */
+}
+
+DatetimePrimary = { ValueExpressionPrimary | DatetimeValueFunction }
+
+DatetimeValueFunction = {
+    DateFunction
+    | TimeFunction
+    | DatetimeFunction
+    | LocaltimeFunction
+    | LocaldatetimeFunction
+}
+
+DateFunction = {
+    CURRENT_DATE
+    | DATE ~ LeftParen ~ DateFunctionParameters? ~ RightParen
+}
+
+TimeFunction = {
+    CURRENT_TIME
+    | ZONED_TIME ~ LeftParen ~ TimeFunctionParameters? ~ RightParen
+}
+
+LocaltimeFunction = {
+    LOCAL_TIME ~ LeftParen ~ ( TimeFunctionParameters? ~ RightParen )?
+}
+
+DatetimeFunction = {
+    CURRENT_TIMESTAMP
+    | ZONED_DATETIME ~ LeftParen ~ DatetimeFunctionParameters? ~ RightParen
+}
+
+LocaldatetimeFunction = {
+    LOCAL_TIMESTAMP
+    | LOCAL_DATETIME ~ LeftParen ~ DatetimeFunctionParameters? ~ RightParen
+}
+
+DateFunctionParameters = { DateString | RecordConstructor }
+
+TimeFunctionParameters = { TimeString | RecordConstructor }
+
+DatetimeFunctionParameters = { DatetimeString | RecordConstructor }
+
+DurationValueExpression = {
+    DurationAdditionAndSubtraction
+    | DatetimeSubtraction
+}
+DurationAdditionAndSubtraction = {
+    DurationTerm ~ ( ( PlusSign | MinusSign ) ~ DurationTerm1 )*
+
+}
+
+DatetimeSubtraction = {
+    DURATION_BETWEEN ~ LeftParen ~ DatetimeSubtractionParameters ~ RightParen ~ TemporalDurationQualifier?
+}
+
+DatetimeSubtractionParameters = { DatetimeValueExpression1 ~ Comma ~ DatetimeValueExpression2 }
+
+DurationTerm = {
+    DurationTermX ~ ( ( Asterisk | Solidus ) ~ Factor )*
+}
+
+DurationTermX = {
+    ( Term ~ Asterisk )? ~ DurationFactor
+}
+
+DurationFactor = {
+    Sign? ~ DurationPrimary
+}
+
+DurationPrimary = { ValueExpressionPrimary | DurationValueFunction }
+
+DurationValueExpression1 = { DurationValueExpression }
+
+DurationTerm1 = { DurationTerm }
+
+DurationTerm2 = { DurationTerm }
+
+DatetimeValueExpression1 = { DatetimeValueExpression }
+
+DatetimeValueExpression2 = { DatetimeValueExpression }
+
+DurationValueFunction = { DurationFunction | DurationAbsoluteValueFunction }
+
+DurationFunction = { DURATION ~ LeftParen ~ DurationFunctionParameters ~ RightParen }
+
+DurationFunctionParameters = { DurationString | RecordConstructor }
+
+DurationAbsoluteValueFunction = { ABS ~ LeftParen ~ DurationValueExpression ~ RightParen }
+
+AuthorizationIdentifier = { Identifier }
+
+ObjectName = { Identifier }
+
+ObjectNameOrBindingVariable = { RegularIdentifier }
+
+DirectoryName = { Identifier }
+
+SchemaName = { Identifier }
+
+GraphName = { RegularIdentifier | DelimitedGraphName }
+
+DelimitedGraphName = { DelimitedIdentifier }
+
+GraphTypeName = { Identifier }
+
+NodeTypeName = { Identifier }
+
+EdgeTypeName = { Identifier }
+
+BindingTableName = { RegularIdentifier | DelimitedBindingTableName }
+
+DelimitedBindingTableName = { DelimitedIdentifier }
+
+ProcedureName = { Identifier }
+
+LabelName = { Identifier }
+
+PropertyName = { Identifier }
+
+FieldName = { Identifier }
+
+ParameterName = { SeparatedIdentifier }
+
+GraphPatternVariable = { ElementVariable | PathOrSubpathVariable }
+
+PathOrSubpathVariable = { PathVariable | SubpathVariable }
+
+ElementVariable = { BindingVariable }
+
+PathVariable = { BindingVariable }
+
+SubpathVariable = { RegularIdentifier }
+
+BindingVariable = { RegularIdentifier }
+
+Literal = { SignedNumericLiteral | GeneralLiteral }
+
+UnsignedLiteral = { UnsignedNumericLiteral | GeneralLiteral }
+
+GeneralLiteral = {
+    BooleanLiteral
+    | CharacterStringLiteral
+    | ByteStringLiteral
+    | TemporalLiteral
+    | DurationLiteral
+    | NullLiteral
+    | ListLiteral
+    | RecordLiteral
+}
+
+BooleanLiteral = {
+    TRUE
+    | FALSE
+    | UNKNOWN
+}
+
+CharacterStringLiteral = { SingleQuotedCharacterSequence | DoubleQuotedCharacterSequence }
+
+SingleQuotedCharacterSequence = {
+    NoEscape? ~ UnbrokenSingleQuotedCharacterSequence
+}
+
+DoubleQuotedCharacterSequence = {
+    NoEscape? ~ UnbrokenDoubleQuotedCharacterSequence
+}
+
+AccentQuotedCharacterSequence = {
+    NoEscape? ~ UnbrokenAccentQuotedCharacterSequence
+}
+
+NoEscape = { CommercialAt }
+
+UnbrokenSingleQuotedCharacterSequence = {
+    Quote ~ SingleQuotedCharacterRepresentation* ~ Quote
+}
+
+UnbrokenDoubleQuotedCharacterSequence = {
+    DoubleQuote ~ DoubleQuotedCharacterRepresentation* ~ DoubleQuote
+}
+
+UnbrokenAccentQuotedCharacterSequence = {
+    GraveAccent ~ AccentQuotedCharacterRepresentation* ~ GraveAccent
+}
+
+SingleQuotedCharacterRepresentation = {
+    DoubleSingleQuote
+    | EscapedCharacter
+    | !( "'" | "\\" | "\r" | "\n" ) ~ ANY
+}
+
+DoubleQuotedCharacterRepresentation = {
+    DoubleDoubleQuote
+    | EscapedCharacter
+    | !( "\"" | "\\" | "\r" | "\n" ) ~ ANY
+}
+
+AccentQuotedCharacterRepresentation = {
+    DoubleGraveAccent
+    | EscapedCharacter
+    | !( "`" | "\\" | "\r" | "\n" ) ~ ANY
+}
+
+
+DoubleSingleQuote = {
+    Quote ~ Quote
+}
+
+DoubleDoubleQuote = {
+    DoubleQuote ~ DoubleQuote
+}
+
+DoubleGraveAccent = {
+    GraveAccent ~ GraveAccent
+}
+
+/*
+StringLiteralCharacter = {
+// See the Syntax Rules.
+}
+*/
+
+EscapedCharacter = {
+    EscapedReverseSolidus
+    | EscapedQuote
+    | EscapedDoubleQuote
+    | EscapedGraveAccent
+    | EscapedTab
+    | EscapedBackspace
+    | EscapedNewline
+    | EscapedCarriageReturn
+    | EscapedFormFeed
+    | UnicodeEscapeValue
+}
+
+EscapedReverseSolidus = { ReverseSolidus ~ ReverseSolidus }
+
+EscapedQuote = { ReverseSolidus ~ Quote }
+
+EscapedDoubleQuote = { ReverseSolidus ~ DoubleQuote }
+
+EscapedGraveAccent = { ReverseSolidus ~ GraveAccent }
+
+EscapedTab = { ReverseSolidus ~ "t" }
+
+EscapedBackspace = { ReverseSolidus ~ "b" }
+
+EscapedNewline = { ReverseSolidus ~ "n" }
+
+EscapedCarriageReturn = { ReverseSolidus ~ "r" }
+
+EscapedFormFeed = { ReverseSolidus ~ "f" }
+
+UnicodeEscapeValue = {
+    Unicode4DigitEscapeValue
+    | Unicode6DigitEscapeValue
+}
+
+Unicode4DigitEscapeValue = { ReverseSolidus ~ "u" ~ HexDigit{4} }
+
+Unicode6DigitEscapeValue = { ReverseSolidus ~ "U" ~ HexDigit{6} }
+
+ByteStringLiteral = {
+    X
+    ~ Quote
+    ~ Space*
+    ~ ( HexDigit ~ Space* ~ HexDigit ~ Space* )?
+    ~ Quote
+    ~ ( Separator ~ Quote ~ Space* ~ ( HexDigit ~ Space* ~ HexDigit ~ Space* )* ~ Quote )*
+}
+
+SignedNumericLiteral = {
+    Sign? ~ UnsignedNumericLiteral
+}
+
+Sign = { PlusSign | MinusSign }
+
+UnsignedNumericLiteral = { ExactNumericLiteral | ApproximateNumericLiteral }
+
+ExactNumericLiteral = {
+    UnsignedDecimalInScientificNotation ~ ExactNumberSuffix
+    | UnsignedDecimalInCommonNotation ~ ExactNumberSuffix?
+    | UnsignedDecimalInteger ~ ExactNumberSuffix
+    | UnsignedInteger
+}
+
+ExactNumberSuffix = @{ "M" }
+
+UnsignedDecimalInScientificNotation = {
+    Mantissa ~ E ~ Exponent
+    /* See the Syntax Rules.*/
+}
+Mantissa = { UnsignedDecimalInCommonNotation | UnsignedDecimalInteger }
+
+Exponent = { SignedDecimalInteger }
+
+UnsignedDecimalInCommonNotation = {
+    UnsignedDecimalInteger ~ Period ~ UnsignedDecimalInteger?
+    | Period ~ UnsignedDecimalInteger
+}
+
+UnsignedInteger = {
+    UnsignedDecimalInteger
+    | UnsignedHexadecimalInteger
+    | UnsignedOctalInteger
+    | UnsignedBinaryInteger
+}
+
+SignedDecimalInteger = {
+    Sign? ~ UnsignedDecimalInteger
+}
+
+UnsignedDecimalInteger = {
+    Digit ~ ( Underscore? ~ Digit )*
+}
+
+UnsignedHexadecimalInteger = {
+    "0x" ~ ( Underscore? ~ HexDigit )+
+}
+
+UnsignedOctalInteger = {
+    "0o" ~ ( Underscore? ~ OctalDigit )+
+}
+
+UnsignedBinaryInteger = {
+    "0b" ~ ( Underscore? ~ BinaryDigit )+
+}
+
+ApproximateNumericLiteral = {
+    UnsignedDecimalInScientificNotation ~ ApproximateNumberSuffix?
+    | UnsignedDecimalInCommonNotation ~ ApproximateNumberSuffix
+    | UnsignedDecimalInteger ~ ApproximateNumberSuffix
+}
+
+ApproximateNumberSuffix = { F | D }
+
+TemporalLiteral = {
+    DateLiteral | TimeLiteral | DatetimeLiteral /* | SqlDatetimeLiteral */
+}
+
+DateLiteral = { DATE ~ DateString }
+
+TimeLiteral = { TIME ~ TimeString }
+
+DatetimeLiteral = {
+    (DATETIME | TIMESTAMP) ~ DatetimeString
+}
+
+DateString = { CharacterStringLiteral }
+
+TimeString = { CharacterStringLiteral }
+
+DatetimeString = { CharacterStringLiteral }
+
+TimeZoneString = { CharacterStringLiteral }
+
+/*
+SqlDatetimeLiteral = {
+// See the Syntax Rules.
+}
+*/
+DurationLiteral = {
+    DURATION ~ DurationString
+    /* | SqlIntervalLiteral */
+}
+
+DurationString = { CharacterStringLiteral }
+
+Iso8601YearsAndMonths = {
+    P ~ Iso8601Years? ~ Iso8601Months?
+}
+
+Iso8601Years = { Iso8601Sint ~ "Y" }
+
+Iso8601Months = { Iso8601Sint ~ "M" }
+
+Iso8601Days = { Iso8601Sint ~ "D" }
+
+Iso8601DaysAndTime = {
+    P ~ Iso8601Days? ~ T ~ Iso8601Hours? ~ Iso8601Minutes? ~ Iso8601Seconds?
+}
+
+Iso8601Hours = { Iso8601Sint ~ "H" }
+
+Iso8601Minutes = { Iso8601Sint ~ "M" }
+
+Iso8601Seconds = {
+    Iso8601Sint ~ Period ~ Iso8601Uint? ~ "S"
+}
+
+Iso8601Sint = {
+    MinusSign? ~ UnsignedDecimalInteger
+}
+
+Iso8601Uint = { UnsignedDecimalInteger }
+
+/*
+SqlIntervalLiteral = {
+// See the Syntax Rules.
+}
+*/
+NullLiteral = { NULL }
+
+ListLiteral = { ListValueConstructorByEnumeration }
+
+RecordLiteral = { RecordConstructor }
+
+Token = { NonDelimiterToken | DelimiterToken }
+
+NonDelimiterToken = {
+    RegularIdentifier
+    | SubstitutedParameterReference
+    | GeneralParameterReference
+    | Keyword
+    | UnsignedNumericLiteral
+    | ByteStringLiteral
+    | MultisetAlternationOperator
+}
+
+Identifier = { RegularIdentifier | DelimitedIdentifier }
+
+SeparatedIdentifier = { ExtendedIdentifier | DelimitedIdentifier }
+
+NonDelimitedIdentifier = { RegularIdentifier | ExtendedIdentifier }
+
+RegularIdentifier = {
+    IdentifierStart ~ IdentifierExtend*
+}
+
+ExtendedIdentifier = {
+    IdentifierExtend+
+}
+
+DelimitedIdentifier = { DoubleQuotedCharacterSequence | AccentQuotedCharacterSequence }
+
+IdentifierStart = {
+    SimpleLatinLetter | "_"
+}
+
+IdentifierExtend = {
+    SimpleLatinLetter
+    | Digit
+    | "_"
+}
+
+SubstitutedParameterReference = { DoubleDollarSign ~ ParameterName }
+
+GeneralParameterReference = { DollarSign ~ ParameterName }
+
+Keyword = { ReservedWord | NonReservedWord }
+
+ReservedWord = {
+    PreReservedWord
+    | ABS
+    | ACOS
+    | ALL
+    | ALL_DIFFERENT
+    | AND
+    | ANY_
+    | ARRAY
+    | AS
+    | ASC
+    | ASCENDING
+    | ASIN
+    | AT
+    | ATAN
+    | AVG
+    | BIG
+    | BIGINT
+    | BINARY
+    | BOOL
+    | BOOLEAN
+    | BOTH
+    | BTRIM
+    | BY
+    | BYTE_LENGTH
+    | BYTES
+    | CALL
+    | CARDINALITY
+    | CASE
+    | CAST
+    | CEIL
+    | CEILING
+    | CHAR
+    | CHAR_LENGTH
+    | CHARACTER_LENGTH
+    | CHARACTERISTICS
+    | CLOSE
+    | COALESCE
+    | COLLECT_LIST
+    | COMMIT
+    | COPY
+    | COS
+    | COSH
+    | COT
+    | COUNT
+    | CREATE
+    | CURRENT_DATE
+    | CURRENT_GRAPH
+    | CURRENT_PROPERTY_GRAPH
+    | CURRENT_SCHEMA
+    | CURRENT_TIME
+    | CURRENT_TIMESTAMP
+    | DATE
+    | DATETIME
+    | DAY
+    | DEC
+    | DECIMAL
+    | DEGREES
+    | DELETE
+    | DESC
+    | DESCENDING
+    | DETACH
+    | DISTINCT
+    | DOUBLE
+    | DROP_
+    | DURATION
+    | DURATION_BETWEEN
+    | ELEMENT_ID
+    | ELSE
+    | END
+    | EXCEPT
+    | EXISTS
+    | EXP
+    | FALSE
+    | FILTER
+    | FINISH
+    | FLOAT
+    | FLOAT16
+    | FLOAT32
+    | FLOAT64
+    | FLOAT128
+    | FLOAT256
+    | FLOOR
+    | FOR
+    | FROM
+    | GROUP
+    | HAVING
+    | HOME_GRAPH
+    | HOME_PROPERTY_GRAPH
+    | HOME_SCHEMA
+    | HOUR
+    | IF
+    | IMPLIES
+    | IN
+    | INSERT
+    | INT
+    | INTEGER
+    | INT8
+    | INTEGER8
+    | INT16
+    | INTEGER16
+    | INT32
+    | INTEGER32
+    | INT64
+    | INTEGER64
+    | INT128
+    | INTEGER128
+    | INT256
+    | INTEGER256
+    | INTERSECT
+    | INTERVAL
+    | IS
+    | LEADING
+    | LEFT
+    | LET
+    | LIKE
+    | LIMIT
+    | LIST
+    | LN
+    | LOCAL
+    | LOCAL_DATETIME
+    | LOCAL_TIME
+    | LOCAL_TIMESTAMP
+    | LOG
+    | LOG10
+    | LOWER
+    | LTRIM
+    | MATCH
+    | MAX
+    | MIN
+    | MINUTE
+    | MOD
+    | MONTH
+    | NEXT
+    | NODETACH
+    | NORMALIZE
+    | NOT
+    | NOTHING
+    | NULL
+    | NULLS
+    | NULLIF
+    | OCTET_LENGTH
+    | OF
+    | OFFSET
+    | OPTIONAL
+    | OR
+    | ORDER
+    | OTHERWISE
+    | PARAMETER
+    | PARAMETERS
+    | PATH
+    | PATH_LENGTH
+    | PATHS
+    | PERCENTILE_CONT
+    | PERCENTILE_DISC
+    | POWER
+    | PRECISION
+    | PROPERTY_EXISTS
+    | RADIANS
+    | REAL
+    | RECORD
+    | REMOVE
+    | REPLACE
+    | RESET
+    | RETURN
+    | RIGHT
+    | ROLLBACK
+    | RTRIM
+    | SAME
+    | SCHEMA
+    | SECOND
+    | SELECT
+    | SESSION
+    | SESSION_USER
+    | SET
+    | SIGNED
+    | SIN
+    | SINH
+    | SIZE
+    | SKIP
+    | SMALL
+    | SMALLINT
+    | SQRT
+    | START
+    | STDDEV_POP
+    | STDDEV_SAMP
+    | STRING
+    | SUM
+    | TAN
+    | TANH
+    | THEN
+    | TIME
+    | TIMESTAMP
+    | TRAILING
+    | TRIM
+    | TRUE
+    | TYPED
+    | UBIGINT
+    | UINT
+    | UINT8
+    | UINT16
+    | UINT32
+    | UINT64
+    | UINT128
+    | UINT256
+    | UNION
+    | UNKNOWN
+    | UNSIGNED
+    | UPPER
+    | USE
+    | USMALLINT
+    | VALUE
+    | VARBINARY
+    | VARCHAR
+    | VARIABLE
+    | WHEN
+    | WHERE
+    | WITH
+    | XOR
+    | YEAR
+    | YIELD
+    | ZONED
+    | ZONED_DATETIME
+    | ZONED_TIME
+}
+
+PreReservedWord = {
+    ABSTRACT
+    | AGGREGATE
+    | AGGREGATES
+    | ALTER
+    | CATALOG
+    | CLEAR
+    | CLONE
+    | CONSTRAINT
+    | CURRENT_ROLE
+    | CURRENT_USER
+    | DATA
+    | DIRECTORY
+    | DRYRUN
+    | EXACT
+    | EXISTING
+    | FUNCTION
+    | GQLSTATUS
+    | GRANT
+    | INSTANT
+    | INFINITY
+    | NUMBER_
+    | NUMERIC
+    | ON
+    | OPEN
+    | PARTITION
+    | PROCEDURE
+    | PRODUCT
+    | PROJECT
+    | QUERY
+    | RECORDS
+    | REFERENCE
+    | RENAME
+    | REVOKE
+    | SUBSTRING
+    | SYSTEM_USER
+    | TEMPORAL
+    | UNIQUE
+    | UNIT
+    | VALUES
+    | WHITESPACE_
+}
+
+NonReservedWord = {
+    ACYCLIC
+    | BINDING
+    | BINDINGS
+    | CONNECTING
+    | DESTINATION
+    | DIFFERENT
+    | DIRECTED
+    | EDGE
+    | EDGES
+    | ELEMENT
+    | ELEMENTS
+    | FIRST
+    | GRAPH
+    | GROUPS
+    | KEEP
+    | LABEL
+    | LABELED
+    | LABELS
+    | LAST
+    | NFC
+    | NFD
+    | NFKC
+    | NFKD
+    | NO
+    | NODE
+    | NORMALIZED
+    | ONLY
+    | ORDINALITY
+    | PROPERTY
+    | READ
+    | RELATIONSHIP
+    | RELATIONSHIPS
+    | REPEATABLE
+    | SHORTEST
+    | SIMPLE
+    | SOURCE
+    | TABLE
+    | TEMP
+    | TO
+    | TRAIL
+    | TRANSACTION
+    | TYPE
+    | UNDIRECTED
+    | VERTEX
+    | WALK
+    | WITHOUT
+    | WRITE
+    | ZONE
+}
+MultisetAlternationOperator = @{ "|+|" }
+DelimiterToken = {
+    GqlSpecialCharacter
+    | BracketRightArrow
+    | BracketTildeRightArrow
+    | CharacterStringLiteral
+    | ConcatenationOperator
+    | DateString
+    | DatetimeString
+    | DelimitedIdentifier
+    | DoubleColon
+    | DoublePeriod
+    | DurationString
+    | GreaterThanOperator
+    | GreaterThanOrEqualsOperator
+    | LeftArrow
+    | LeftArrowBracket
+    | LeftArrowTilde
+    | LeftArrowTildeBracket
+    | LeftMinusRight
+    | LeftMinusSlash
+    | LeftTildeSlash
+    | LessThanOperator
+    | LessThanOrEqualsOperator
+    | MinusLeftBracket
+    | MinusSlash
+    | NotEqualsOperator
+    | RightArrow
+    | RightBracketMinus
+    | RightBracketTilde
+    | RightDoubleArrow
+    | SlashMinus
+    | SlashMinusRight
+    | SlashTilde
+    | SlashTildeRight
+    | TildeLeftBracket
+    | TildeRightArrow
+    | TildeSlash
+    | TimeString
+}
+BracketRightArrow = @{ "]->" }
+BracketTildeRightArrow = @{ "]~>" }
+ConcatenationOperator = @{ "||" }
+DoubleColon = @{ "::" }
+DoubleDollarSign = @{ "$$" }
+DoubleMinusSign = @{ "--" }
+DoublePeriod = @{ ".." }
+GreaterThanOperator = { RightAngleBracket }
+GreaterThanOrEqualsOperator = @{ ">=" }
+LeftArrow = @{ "<-" }
+LeftArrowTilde = @{ "<~" }
+LeftArrowBracket = @{ "<-[" }
+LeftArrowTildeBracket = @{ "<~[" }
+LeftMinusRight = @{ "<->" }
+LeftMinusSlash = @{ "<-/" }
+LeftTildeSlash = @{ "<~/" }
+LessThanOperator = { LeftAngleBracket }
+LessThanOrEqualsOperator = @{ "<=" }
+MinusLeftBracket = @{ "-[" }
+MinusSlash = @{ "-/" }
+NotEqualsOperator = @{ "<>" }
+RightArrow = @{ "->" }
+RightBracketMinus = @{ "]-" }
+RightBracketTilde = @{ "]~" }
+RightDoubleArrow = @{ "=>" }
+SlashMinus = @{ "/-" }
+SlashMinusRight = @{ "/->" }
+SlashTilde = @{ "/~" }
+SlashTildeRight = @{ "/~>" }
+TildeLeftBracket = @{ "~[" }
+TildeRightArrow = @{ "~>" }
+TildeSlash = @{ "~/" }
+DoubleSolidus = @{ "//" }
+Separator = {
+    (((Comment | Whitespace))+)
+}
+Whitespace = {
+    " " | "\t"
+// See the Syntax Rules.
+}
+WHITESPACE = _{ Whitespace | Newline }
+/*
+TruncatingWhitespace = {
+// See the Syntax Rules.
+}
+*/
+/*
+BidirectionalControlCharacter = {
+// See the Syntax Rules.
+}
+*/
+COMMENT = _{ Comment }
+Comment = _{
+    SimpleComment | BracketedComment
+}
+SimpleComment = {
+    SimpleCommentIntroducer ~ ( !("\r" | "\n" ) ~ ANY )? ~ Newline
+}
+SimpleCommentIntroducer = {
+    DoubleSolidus | DoubleMinusSign
+}
+BracketedComment = {
+    BracketedCommentIntroducer ~ BracketedCommentContents ~ BracketedCommentTerminator
+}
+BracketedCommentIntroducer = @{ "/*" }
+BracketedCommentTerminator = @{ "*/" }
+BracketedCommentContents = {
+    BracketedCommentIntroducer ~ (!"*/" ~ ANY)* ~ BracketedCommentTerminator
+}
+
+Newline = { NEWLINE }
+
+EdgeSynonym = {
+    EDGE | RELATIONSHIP
+}
+
+EdgesSynonym = {
+    EDGES | RELATIONSHIPS
+}
+
+NodeSynonym = {
+    NODE | VERTEX
+}
+
+Implies = {
+    RightDoubleArrow
+    | IMPLIES
+}
+
+GqlTerminalCharacter = {
+    GqlLanguageCharacter /* | OtherLanguageCharacter */
+}
+
+GqlLanguageCharacter = {
+    SimpleLatinLetter
+    | Digit
+    | GqlSpecialCharacter
+}
+
+SimpleLatinLetter = { SimpleLatinLowerCaseLetter | SimpleLatinUpperCaseLetter }
+
+SimpleLatinLowerCaseLetter = @{ ASCII_ALPHA_LOWER }
+
+SimpleLatinUpperCaseLetter = @{ ASCII_ALPHA_UPPER }
+
+HexDigit = @{ ASCII_HEX_DIGIT } 
+
+Digit = {
+    StandardDigit /* | OtherDigit */
+}
+
+StandardDigit = @{ ASCII_DIGIT }
+
+OctalDigit = @{ ASCII_OCT_DIGIT}
+
+BinaryDigit = @{ ASCII_BIN_DIGIT }
+
+/*
+OtherDigit = @{
+// See the Syntax Rules.
+}
+*/
+
+GqlSpecialCharacter = {
+    Space   
+    | Ampersand    
+    | Asterisk    
+    | Colon    
+    | EqualsOperator    
+    | Comma    
+    | CommercialAt    
+    | DollarSign    
+    | DoubleQuote    
+    | ExclamationMark    
+    | GraveAccent    
+    | RightAngleBracket    
+    | LeftBrace    
+    | LeftBracket    
+    | LeftParen    
+    | LeftAngleBracket    
+    | MinusSign    
+    | Period    
+    | PlusSign    
+    | QuestionMark    
+    | Quote    
+    | ReverseSolidus    
+    | RightBrace    
+    | RightBracket    
+    | RightParen    
+    | Solidus    
+    | Underscore    
+    | VerticalBar    
+    | Percent    
+    | Tilde
+}
+
+Space = { " " }
+Ampersand = { "&" }
+Asterisk = { "*" }
+Caret = { "^" }
+Colon = { ":" }
+Comma = { "," }
+CommercialAt = { "@" }
+DollarSign = { "$" }
+DoubleQuote = { "\"" }
+EqualsOperator = { "=" }
+ExclamationMark = { "!" }
+RightAngleBracket = { ">" }
+GraveAccent = { "`" }
+LeftBrace = { "{" }
+LeftBracket = { "[" }
+LeftParen = { "(" }
+LeftAngleBracket = { "<" }
+MinusSign = { "-" }
+Percent = { "%" }
+Period = { "." }
+PlusSign = { "+" }
+QuestionMark = { "?" }
+Quote = { "'" }
+ReverseSolidus = { "\\" }
+RightBrace = { "}" }
+RightBracket = { "]" }
+RightParen = { ")" }
+Solidus = { "/" }
+Tilde = { "~" }
+Underscore = { "_" }
+VerticalBar = { "|" }
+/*
+OtherLanguageCharacter = {
+// See the Syntax Rules.
+ }
+*/
+PERCENTILE_CONT = { ^"PERCENTILE_CONT" }
+VALUE = { ^"VALUE" }
+FALSE = { ^"FALSE" }
+LAST = { ^"LAST" }
+DETACH = { ^"DETACH" }
+INT64 = { ^"INT64" }
+UINT128 = { ^"UINT128" }
+USMALLINT = { ^"USMALLINT" }
+PARAMETER = { ^"PARAMETER" }
+UINT64 = { ^"UINT64" }
+SINH = { ^"SINH" }
+QUERY = { ^"QUERY" }
+LOCAL_DATETIME = { ^"LOCAL_DATETIME" }
+NODETACH = { ^"NODETACH" }
+LOG10 = { ^"LOG10" }
+TRIM = { ^"TRIM" }
+AGGREGATE = { ^"AGGREGATE" }
+PROPERTY = { ^"PROPERTY" }
+FROM = { ^"FROM" }
+E = { ^"E" }
+SIZE = { ^"SIZE" }
+OPEN = { ^"OPEN" }
+PATH_LENGTH = { ^"PATH_LENGTH" }
+HOME_GRAPH = { ^"HOME_GRAPH" }
+KEEP = { ^"KEEP" }
+UBIGINT = { ^"UBIGINT" }
+DELETE = { ^"DELETE" }
+OR = { ^"OR" }
+CLEAR = { ^"CLEAR" }
+ABS = { ^"ABS" }
+MOD = { ^"MOD" }
+HOME_PROPERTY_GRAPH = { ^"HOME_PROPERTY_GRAPH" }
+SESSION = { ^"SESSION" }
+NOT = { ^"NOT" }
+COMMIT = { ^"COMMIT" }
+INT128 = { ^"INT128" }
+UNIQUE = { ^"UNIQUE" }
+FLOAT = { ^"FLOAT" }
+PROPERTY_EXISTS = { ^"PROPERTY_EXISTS" }
+INTEGER64 = { ^"INTEGER64" }
+NEXT = { ^"NEXT" }
+SECOND = { ^"SECOND" }
+SET = { ^"SET" }
+PRODUCT = { ^"PRODUCT" }
+BYTES = { ^"BYTES" }
+NODE = { ^"NODE" }
+MATCH = { ^"MATCH" }
+INT32 = { ^"INT32" }
+THEN = { ^"THEN" }
+PRECISION = { ^"PRECISION" }
+COT = { ^"COT" }
+MIN = { ^"MIN" }
+ELSE = { ^"ELSE" }
+AS = { ^"AS" }
+RADIANS = { ^"RADIANS" }
+SIGNED = { ^"SIGNED" }
+NORMALIZE = { ^"NORMALIZE" }
+NORMALIZED = { ^"NORMALIZED" }
+NFKD = { ^"NFKD" }
+DISTINCT = { ^"DISTINCT" }
+CHAR_LENGTH = { ^"CHAR_LENGTH" }
+CURRENT_DATE = { ^"CURRENT_DATE" }
+EXACT = { ^"EXACT" }
+AGGREGATES = { ^"AGGREGATES" }
+INT8 = { ^"INT8" }
+RECORDS = { ^"RECORDS" }
+FILTER = { ^"FILTER" }
+BINARY = { ^"BINARY" }
+NULLIF = { ^"NULLIF" }
+DIRECTORY = { ^"DIRECTORY" }
+END = { ^"END" }
+ALL = { ^"ALL" }
+ZONED_DATETIME = { ^"ZONED_DATETIME" }
+LIKE = { ^"LIKE" }
+VARCHAR = { ^"VARCHAR" }
+REMOVE = { ^"REMOVE" }
+UNDIRECTED = { ^"UNDIRECTED" }
+FLOAT256 = { ^"FLOAT256" }
+REFERENCE = { ^"REFERENCE" }
+BOTH = { ^"BOTH" }
+ASCENDING = { ^"ASCENDING" }
+RETURN = { ^"RETURN" }
+YIELD = { ^"YIELD" }
+UNION = { ^"UNION" }
+DROP_ = { ^"DROP" }
+UINT256 = { ^"UINT256" }
+F = { ^"F" }
+CURRENT_USER = { ^"CURRENT_USER" }
+INTEGER128 = { ^"INTEGER128" }
+DIFFERENT = { ^"DIFFERENT" }
+CHAR = { ^"CHAR" }
+FLOAT32 = { ^"FLOAT32" }
+REPLACE = { ^"REPLACE" }
+EXISTING = { ^"EXISTING" }
+SMALLINT = { ^"SMALLINT" }
+ZONED_TIME = { ^"ZONED_TIME" }
+TRANSACTION = { ^"TRANSACTION" }
+USE = { ^"USE" }
+ZONED = { ^"ZONED" }
+PATHS = { ^"PATHS" }
+CONNECTING = { ^"CONNECTING" }
+VARBINARY = { ^"VARBINARY" }
+LEFT = { ^"LEFT" }
+D = { ^"D" }
+BYTE_LENGTH = { ^"BYTE_LENGTH" }
+TANH = { ^"TANH" }
+ELEMENTS = { ^"ELEMENTS" }
+TEMPORAL = { ^"TEMPORAL" }
+RELATIONSHIP = { ^"RELATIONSHIP" }
+NFC = { ^"NFC" }
+DRYRUN = { ^"DRYRUN" }
+PERCENTILE_DISC = { ^"PERCENTILE_DISC" }
+COLLECT_LIST = { ^"COLLECT_LIST" }
+INTEGER256 = { ^"INTEGER256" }
+DEC = { ^"DEC" }
+UPPER = { ^"UPPER" }
+WHEN = { ^"WHEN" }
+DIRECTED = { ^"DIRECTED" }
+CREATE = { ^"CREATE" }
+UINT8 = { ^"UINT8" }
+LET = { ^"LET" }
+TAN = { ^"TAN" }
+IS = { ^"IS" }
+CEILING = { ^"CEILING" }
+START = { ^"START" }
+LOCAL_TIME = { ^"LOCAL_TIME" }
+P = { ^"P" }
+CATALOG = { ^"CATALOG" }
+NUMBER_ = { ^"NUMBER" }
+COALESCE = { ^"COALESCE" }
+ON = { ^"ON" }
+SUM = { ^"SUM" }
+INSERT = { ^"INSERT" }
+SESSION_USER = { ^"SESSION_USER" }
+SMALL = { ^"SMALL" }
+BIGINT = { ^"BIGINT" }
+ALTER = { ^"ALTER" }
+CASE = { ^"CASE" }
+SELECT = { ^"SELECT" }
+WITH = { ^"WITH" }
+BIG = { ^"BIG" }
+FLOAT64 = { ^"FLOAT64" }
+SAME = { ^"SAME" }
+COSH = { ^"COSH" }
+ASIN = { ^"ASIN" }
+FLOOR = { ^"FLOOR" }
+ELEMENT = { ^"ELEMENT" }
+RECORD = { ^"RECORD" }
+DAY = { ^"DAY" }
+UNKNOWN = { ^"UNKNOWN" }
+ASC = { ^"ASC" }
+UINT16 = { ^"UINT16" }
+DESCENDING = { ^"DESCENDING" }
+FLOAT16 = { ^"FLOAT16" }
+MAX = { ^"MAX" }
+TRUE = { ^"TRUE" }
+NUMERIC = { ^"NUMERIC" }
+EDGE = { ^"EDGE" }
+ORDINALITY = { ^"ORDINALITY" }
+DATETIME = { ^"DATETIME" }
+READ = { ^"READ" }
+DATE = { ^"DATE" }
+YEAR = { ^"YEAR" }
+LOG = { ^"LOG" }
+VERTEX = { ^"VERTEX" }
+EXP = { ^"EXP" }
+BINDINGS = { ^"BINDINGS" }
+SQRT = { ^"SQRT" }
+PATH = { ^"PATH" }
+NO = { ^"NO" }
+LIST = { ^"LIST" }
+PARTITION = { ^"PARTITION" }
+SKIP = { ^"SKIP" }
+SIMPLE = { ^"SIMPLE" }
+DECIMAL = { ^"DECIMAL" }
+STDDEV_SAMP = { ^"STDDEV_SAMP" }
+NFD = { ^"NFD" }
+COPY = { ^"COPY" }
+BY = { ^"BY" }
+BINDING = { ^"BINDING" }
+EXISTS = { ^"EXISTS" }
+ONLY = { ^"ONLY" }
+WRITE = { ^"WRITE" }
+NULLS = { ^"NULLS" }
+AVG = { ^"AVG" }
+OCTET_LENGTH = { ^"OCTET_LENGTH" }
+FINISH = { ^"FINISH" }
+SHORTEST = { ^"SHORTEST" }
+PARAMETERS = { ^"PARAMETERS" }
+ACOS = { ^"ACOS" }
+NFKC = { ^"NFKC" }
+INTEGER = { ^"INTEGER" }
+CURRENT_TIMESTAMP = { ^"CURRENT_TIMESTAMP" }
+NOTHING = { ^"NOTHING" }
+ROLLBACK = { ^"ROLLBACK" }
+INT = { ^"INT" }
+WITHOUT = { ^"WITHOUT" }
+GROUPS = { ^"GROUPS" }
+CURRENT_ROLE = { ^"CURRENT_ROLE" }
+FUNCTION = { ^"FUNCTION" }
+SYSTEM_USER = { ^"SYSTEM_USER" }
+UNIT = { ^"UNIT" }
+ALL_DIFFERENT = { ^"ALL_DIFFERENT" }
+AT = { ^"AT" }
+WHITESPACE_= { ^"WHITESPACE" }
+MONTH = { ^"MONTH" }
+LABELED = { ^"LABELED" }
+SUBSTRING = { ^"SUBSTRING" }
+REPEATABLE = { ^"REPEATABLE" }
+EDGES = { ^"EDGES" }
+LOCAL_TIMESTAMP = { ^"LOCAL_TIMESTAMP" }
+SOURCE = { ^"SOURCE" }
+WALK = { ^"WALK" }
+ORDER = { ^"ORDER" }
+NULL = { ^"NULL" }
+TYPED = { ^"TYPED" }
+UINT32 = { ^"UINT32" }
+CHARACTERISTICS = { ^"CHARACTERISTICS" }
+CARDINALITY = { ^"CARDINALITY" }
+ZONE = { ^"ZONE" }
+CALL = { ^"CALL" }
+CHARACTER_LENGTH = { ^"CHARACTER_LENGTH" }
+DURATION_BETWEEN = { ^"DURATION_BETWEEN" }
+PROJECT = { ^"PROJECT" }
+COS = { ^"COS" }
+RESET = { ^"RESET" }
+CURRENT_PROPERTY_GRAPH = { ^"CURRENT_PROPERTY_GRAPH" }
+BTRIM = { ^"BTRIM" }
+INT16 = { ^"INT16" }
+LOCAL = { ^"LOCAL" }
+AND = { ^"AND" }
+HAVING = { ^"HAVING" }
+DATA = { ^"DATA" }
+INT256 = { ^"INT256" }
+INTEGER8 = { ^"INTEGER8" }
+TIMESTAMP = { ^"TIMESTAMP" }
+LTRIM = { ^"LTRIM" }
+SIN = { ^"SIN" }
+OTHERWISE = { ^"OTHERWISE" }
+IMPLIES = { ^"IMPLIES" }
+CURRENT_SCHEMA = { ^"CURRENT_SCHEMA" }
+CLOSE = { ^"CLOSE" }
+TYPE = { ^"TYPE" }
+TIME = { ^"TIME" }
+ACYCLIC = { ^"ACYCLIC" }
+LEADING = { ^"LEADING" }
+GRAPH = { ^"GRAPH" }
+LN = { ^"LN" }
+TRAILING = { ^"TRAILING" }
+ANY_ = { ^"ANY" }
+TEMP = { ^"TEMP" }
+LOWER = { ^"LOWER" }
+UINT = { ^"UINT" }
+DURATION = { ^"DURATION" }
+ELEMENT_ID = { ^"ELEMENT_ID" }
+CURRENT_TIME = { ^"CURRENT_TIME" }
+COUNT = { ^"COUNT" }
+INTEGER16 = { ^"INTEGER16" }
+FOR = { ^"FOR" }
+PROCEDURE = { ^"PROCEDURE" }
+VARIABLE = { ^"VARIABLE" }
+OPTIONAL = { ^"OPTIONAL" }
+TO = { ^"TO" }
+CAST = { ^"CAST" }
+MINUTE = { ^"MINUTE" }
+OF = { ^"OF" }
+DOUBLE = { ^"DOUBLE" }
+CURRENT_GRAPH = { ^"CURRENT_GRAPH" }
+GQLSTATUS = { ^"GQLSTATUS" }
+UNSIGNED = { ^"UNSIGNED" }
+POWER = { ^"POWER" }
+IN = { ^"IN" }
+HOUR = { ^"HOUR" }
+RTRIM = { ^"RTRIM" }
+CLONE = { ^"CLONE" }
+TRAIL = { ^"TRAIL" }
+REAL = { ^"REAL" }
+TABLE = { ^"TABLE" }
+XOR = { ^"XOR" }
+RELATIONSHIPS = { ^"RELATIONSHIPS" }
+SCHEMA = { ^"SCHEMA" }
+IF = { ^"IF" }
+WHERE = { ^"WHERE" }
+STDDEV_POP = { ^"STDDEV_POP" }
+X = { ^"X" }
+LIMIT = { ^"LIMIT" }
+CONSTRAINT = { ^"CONSTRAINT" }
+REVOKE = { ^"REVOKE" }
+VALUES = { ^"VALUES" }
+OFFSET = { ^"OFFSET" }
+DESTINATION = { ^"DESTINATION" }
+RIGHT = { ^"RIGHT" }
+INTERVAL = { ^"INTERVAL" }
+RENAME = { ^"RENAME" }
+INTERSECT = { ^"INTERSECT" }
+LABELS = { ^"LABELS" }
+BOOL = { ^"BOOL" }
+INSTANT = { ^"INSTANT" }
+ARRAY = { ^"ARRAY" }
+GROUP = { ^"GROUP" }
+ABSTRACT = { ^"ABSTRACT" }
+FLOAT128 = { ^"FLOAT128" }
+DESC = { ^"DESC" }
+INTEGER32 = { ^"INTEGER32" }
+LABEL = { ^"LABEL" }
+ATAN = { ^"ATAN" }
+FIRST = { ^"FIRST" }
+HOME_SCHEMA = { ^"HOME_SCHEMA" }
+STRING = { ^"STRING" }
+T = { ^"T" }
+INFINITY = { ^"INFINITY" }
+EXCEPT = { ^"EXCEPT" }
+GRANT = { ^"GRANT" }
+DEGREES = { ^"DEGREES" }
+CEIL = { ^"CEIL" }
+BOOLEAN = { ^"BOOLEAN" }

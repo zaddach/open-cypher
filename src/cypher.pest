@@ -1,3 +1,9 @@
+// Copyright 2022 Austin Poor
+// Copyright 2025 Jonas Zaddah
+//
+// Use of this source code is governed by an MIT-style
+// license that can be found in the LICENSE file or at
+// https://opensource.org/licenses/MIT.
 Cypher = { 
     SP? ~ Statement ~ (SP? ~ ";")? ~ SP? ~ EOI 
 }
@@ -19,12 +25,12 @@ Union = {
 }
 
 SingleQuery = {
-    SinglePartQuery | MultiPartQuery
+    MultiPartQuery | SinglePartQuery
 }
 
 SinglePartQuery = {
     ((ReadingClause ~ SP?)* ~ Return) 
-    | ((ReadingClause ~ SP?)* ~ UpdatingClause ~ (SP? ~ UpdatingClause)* ~ (SP? ~ Return)?)
+    | ((ReadingClause ~ SP?)* ~ (UpdatingClause ~ SP?)+ ~ Return?)
 }
 
 MultiPartQuery = {
@@ -64,9 +70,9 @@ Set = {
 }
 
 SetItem = {
-    (PropertyExpression ~ SP? ~ "=" ~ SP? ~ Expression)
-    | (Variable ~ SP? ~ "=" ~ SP? ~ Expression)
-    | (Variable ~ SP? ~ "+=" ~ SP? ~ Expression)
+    (PropertyExpression ~ SP? ~ EQ ~ SP? ~ Expression)
+    | (Variable ~ SP? ~ EQ ~ SP? ~ Expression)
+    | (Variable ~ SP? ~ INCREMENT ~ SP? ~ Expression)
     | (Variable ~ SP? ~ NodeLabels)
 }
 
@@ -93,7 +99,8 @@ StandaloneCall = {
 }
 
 YieldItems = {
-    YieldItem ~ (SP? ~ "," ~ SP? ~ YieldItem)* ~ (SP? ~ Where)?
+    STAR
+    | (YieldItem ~ (SP? ~ "," ~ SP? ~ YieldItem)* ~ (SP? ~ Where)?)
 }
 
 YieldItem = {
@@ -208,19 +215,19 @@ RelTypeName = { SchemaName }
 Expression = { OrExpression }
 
 OrExpression = {
-    XorExpression ~ (SP ~ ^"OR" ~ SP ~ XorExpression)*
+    XorExpression ~ (SP ~ OR ~ SP ~ XorExpression)*
 }
 
 XorExpression = {
-    AndExpression ~ (SP ~ ^"XOR" ~ SP ~ AndExpression)*
+    AndExpression ~ (SP ~ XOR ~ SP ~ AndExpression)*
 }
 
 AndExpression = {
-    NotExpression ~ (SP ~ ^"AND" ~ SP ~ NotExpression)*
+    NotExpression ~ (SP ~ AND ~ SP ~ NotExpression)*
 }
 
 NotExpression = {
-    (^"NOT" ~ SP?)* ~ ComparisonExpression
+    (NOT ~ SP?)* ~ ComparisonExpression
 }
 
 ComparisonExpression = {
@@ -228,7 +235,7 @@ ComparisonExpression = {
 }
 
 AddOrSubtractExpression = {
-    MultiplyDivideModuloExpression ~ (SP? ~ (ADD | SUBTRACT) ~ SP? ~ MultiplyDivideModuloExpression)*
+    MultiplyDivideModuloExpression ~ (SP? ~ (PLUS | MINUS) ~ SP? ~ MultiplyDivideModuloExpression)*
 }
 
 MultiplyDivideModuloExpression = {
@@ -240,7 +247,7 @@ PowerOfExpression = {
 }
 
 UnaryAddOrSubtractExpression = {
-    ((ADD | SUBTRACT) ~ SP?)* ~ StringListNullOperatorExpression
+    ((PLUS | MINUS) ~ SP?)* ~ StringListNullOperatorExpression
 }
 
 StringListNullOperatorExpression = {
@@ -277,18 +284,38 @@ Atom = {
     Literal
     | Parameter
     | CaseExpression
-    | (COUNT ~ SP? ~ "(" ~ SP? ~ STAR ~ SP? ~ ")")
+    | CountStarExpression
     | ListComprehension
     | PatternComprehension
-    | (ALL ~ SP? ~ "(" ~ SP? ~ FilterExpression ~ SP? ~ ")")
-    | (ANY_ ~ SP? ~ "(" ~ SP? ~ FilterExpression ~ SP? ~ ")")
-    | (NONE ~ SP? ~ "(" ~ SP? ~ FilterExpression ~ SP? ~ ")")
-    | (SINGLE ~ SP? ~ "(" ~ SP? ~ FilterExpression ~ SP? ~ ")")
+    | AllFilterExpression
+    | AnyFilterExpression
+    | NoneFilterExpression
+    | SingleFilterExpression
     | RelationshipsPattern
     | ParenthesizedExpression
     | FunctionInvocation
     | ExistentialSubquery
     | Variable
+}
+
+CountStarExpression = {
+    COUNT ~ SP? ~ "(" ~ SP? ~ STAR ~ SP? ~ ")"
+}
+
+AllFilterExpression = {
+    ALL ~ SP? ~ "(" ~ SP? ~ FilterExpression ~ SP? ~ ")"
+}
+
+AnyFilterExpression = {
+    ANY_ ~ SP? ~ "(" ~ SP? ~ FilterExpression ~ SP? ~ ")"
+}
+
+NoneFilterExpression = {
+    NONE ~ SP? ~ "(" ~ SP? ~ FilterExpression ~ SP? ~ ")"
+}
+
+SingleFilterExpression = {
+    SINGLE ~ SP? ~ "(" ~ SP? ~ FilterExpression ~ SP? ~ ")"
 }
 
 Literal = {
@@ -309,7 +336,7 @@ ListLiteral = {
 }
 
 PartialComparisonExpression = {
-    (EQ | NE | LT | GT | LE | GE) ~ SP? ~ AddOrSubtractExpression
+    (NE | LE | GE | EQ | LT | GT) ~ SP? ~ AddOrSubtractExpression
 }
 
 
@@ -722,6 +749,7 @@ LT = @{ "<" }
 GT = @{ ">" }
 LE = @{ "<=" }
 GE = @{ ">=" }
+INCREMENT = @{ "+=" }
 // TRUE = @{ ^"TRUE" }
 // FALSE = @{ ^"FALSE" }
 COUNT = @{ ^"COUNT" }
@@ -739,8 +767,8 @@ POW = @{ "^" }
 MULTIPLY = @{ "*" }
 DIVIDE = @{ "/" }
 MODULO = @{ "%" }
-// ADD = @{ "+" }
-SUBTRACT = @{ "-" }
+PLUS = @{ "+" }
+MINUS = @{ "-" }
 DOT_DOT = @{ ".." }
 // WHERE = @{ ^"WHERE" }
 // ASCENDING = @{ ^"ASCENDING" }
